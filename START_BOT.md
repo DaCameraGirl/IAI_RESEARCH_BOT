@@ -1,46 +1,31 @@
-# RWS Study Bot — One Project at a Time
+# RWS Study Bot
 
-Three studies. Bot does them **in order**, not all at once.
+## Open it
 
-## Step 1 — Run the bot
+Double-click **RWS Research Bot** on Desktop, or `Launch RWS Research Bot.bat`.
 
-Double-click `RUN_BOT.ps1` or in terminal:
+Your browser opens to **http://127.0.0.1:7842** — a research command center that actually runs hunts.
 
-```
-python scripts/study_bot.py
-```
+## What it does
 
-It prints which study is active and the exact command to give the agent.
+1. Click **Run Deep Hunt** on study 25867
+2. The engine crawls Google Patents citations, burn-checks each hit, scores against your RWS keywords
+3. READY candidates auto-write to `candidates/*_RWS_format.txt`
+4. You review drafts in the Candidates tab before submitting
 
-## Step 2 — Hunt (in Cursor chat)
+No clipboard. No terminal. No "paste this into Cursor."
 
-```
-hunt 25867 deep
-```
+## Queue
 
-(Use whatever study ID the bot printed.)
-
-## Step 3 — Next project when ready
-
-```
-python scripts/study_bot.py round-done
-python scripts/study_bot.py advance
-```
-
-## Queue order
-
-1. **25867** — Remote memory / lossy Ethernet (US7702742) ← **starts here**
-2. **25854** — Wafer fissure (US8728916)
-3. **25853** — LED resin (US8530250) — blocked until you paste RWS brief
+1. **25867** — Remote memory / lossy Ethernet ← active
+2. **25854** — Wafer fissure
+3. **25853** — blocked until RWS brief pasted
 
 ## Files
 
 | File | Purpose |
 |------|---------|
-| `bot_state.json` | Which study is active |
-| `templates/RWS_SUBMISSION_PLAYBOOK.md` | **Angela's proven submit format** |
-| `25657_READY_RWS_FORMAT_ONLY/` | Gold examples that worked |
-| `system_prompt.md` | Bot brain |
-| `ZERO_MISS_PROTOCOL.md` | Exhaustive hunt rules |
-| `scripts/study_bot.py` | One-at-a-time runner |
-| `scripts/check_burned.py` | Duplicate checker |
+| `scripts/rws_web.py` | Web app (this is the bot) |
+| `scripts/patent_hunter.py` | Hunt engine |
+| `scripts/study_bot.py` | Queue state |
+| `bot_state.json` | Active study tracker |

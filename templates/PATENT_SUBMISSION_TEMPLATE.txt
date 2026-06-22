@@ -11,7 +11,11 @@ Form fields:
   assignee: 
   inventors: 
   publication date: 
+  priority date: 
+  DOI: n/a
   URL: 
+  PDF URL: 
+  USPTO URL:
 
 Select these requirements:
 | Requirement | Select? | Why |

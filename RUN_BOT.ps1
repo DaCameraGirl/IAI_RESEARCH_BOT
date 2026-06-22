@@ -1,9 +1,15 @@
-# Double-click or run: powershell -File RUN_BOT.ps1
+# RWS Research Bot — kills stale server, starts fresh, opens browser
 Set-Location $PSScriptRoot
-Write-Host ""
-python scripts\study_bot.py
-Write-Host ""
-Write-Host "Copy the AGENT COMMAND line above into Cursor chat."
-Write-Host "When done: python scripts\study_bot.py advance"
-Write-Host ""
-Read-Host "Press Enter to close"
+
+$port = 7842
+Get-NetTCPConnection -LocalPort $port -ErrorAction SilentlyContinue |
+    ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }
+Start-Sleep -Milliseconds 800
+
+Start-Process "http://127.0.0.1:$port"
+python scripts\rws_web.py
+if ($LASTEXITCODE -ne 0) {
+    Write-Host ""
+    Write-Host "Failed. Run: pip install -r requirements.txt"
+    Read-Host "Press Enter to close"
+}

@@ -40,7 +40,7 @@ to Angela.
 |------|-------------|
 | `check_burned.py` CLEAR | discard |
 | Date ≤ critical date | discard |
-| Free PDF / patent PDF | discard |
+| Free PDF / patent PDF / school-access NPL (`Access: school`) | discard if none |
 | Strong match ≥1 priority req | discard (weak = skip) |
 | Verbatim Ctrl+F anchor exists | discard |
 | Not inference-only | discard |

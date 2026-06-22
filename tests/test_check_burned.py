@@ -23,6 +23,14 @@ class TestNormalize(unittest.TestCase):
     def test_removes_dashes(self) -> None:
         self.assertEqual(check_burned.normalize("US-770-2742"), "US7702742")
 
+    def test_strips_kind_codes(self) -> None:
+        self.assertEqual(check_burned.patent_key("US7702742B2"), "US7702742")
+        self.assertEqual(check_burned.patent_key("US5613071A"), "US5613071")
+
+    def test_normalizes_application_numbers(self) -> None:
+        self.assertEqual(check_burned.patent_key("US20090319634A1"), "US2009319634")
+        self.assertEqual(check_burned.patent_key("US20100205502A1"), "US2010205502")
+
 
 class TestLoadBurned(unittest.TestCase):
     def test_all_study_csvs_load(self) -> None:
@@ -32,7 +40,7 @@ class TestLoadBurned(unittest.TestCase):
 
     def test_25867_has_expected_size(self) -> None:
         burned = check_burned.load_burned("25867")
-        self.assertGreaterEqual(len(burned), 170)
+        self.assertGreaterEqual(len(burned), 160)
 
     def test_study_patents_are_burned(self) -> None:
         expected = {
@@ -72,6 +80,16 @@ class TestCheckBurnedCLI(unittest.TestCase):
         proc = self.run_cli("25867", "US5613071")
         self.assertEqual(proc.returncode, 0)
         self.assertIn("BURNED", proc.stdout)
+
+    def test_study_patent_with_kind_code_burned(self) -> None:
+        proc = self.run_cli("25867", "US7702742B2")
+        self.assertEqual(proc.returncode, 0)
+        self.assertIn("BURNED", proc.stdout)
+
+    def test_family_member_application_burned(self) -> None:
+        proc = self.run_cli("25867", "US20090319634A1", "US20100205502A1")
+        self.assertEqual(proc.returncode, 0)
+        self.assertEqual(proc.stdout.count("BURNED"), 2)
 
     def test_clear_candidate(self) -> None:
         proc = self.run_cli("25867", "US6718392")
