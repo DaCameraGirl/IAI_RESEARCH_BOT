@@ -104,6 +104,14 @@ def test_self_rank_gate_wiring() -> None:
     ok("self-rank gate wired in templates + protocol")
 
 
+def test_unittest_suite() -> None:
+    code, out = run([sys.executable, "-m", "unittest", "discover", "-s", "tests", "-q"])
+    if code != 0:
+        fail("unittest discover", out)
+    else:
+        ok("unittest discover (17 tests)")
+
+
 def main() -> int:
     print("RWS_RESEARCHER smoke tests\n")
     test_scripts_compile()
@@ -112,6 +120,7 @@ def main() -> int:
     test_check_burned_unknown_study()
     test_study_bot_status()
     test_self_rank_gate_wiring()
+    test_unittest_suite()
     print()
     if FAILURES:
         print(f"RESULT: {len(FAILURES)} failure(s)")

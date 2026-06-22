@@ -1,0 +1,1 @@
+# RWS_RESEARCHER test package
