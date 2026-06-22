@@ -1,0 +1,33 @@
+{
+  "mode": "one_at_a_time",
+  "current_study": "25867",
+  "queue": [
+    "25867",
+    "25854",
+    "25853"
+  ],
+  "studies": {
+    "25867": {
+      "status": "active",
+      "rounds_completed": 0,
+      "candidates_found": 0,
+      "submissions_made": 0,
+      "lanes_complete": []
+    },
+    "25854": {
+      "status": "queued",
+      "rounds_completed": 0,
+      "candidates_found": 0,
+      "submissions_made": 0,
+      "lanes_complete": []
+    },
+    "25853": {
+      "status": "blocked",
+      "blocked_reason": "STUDY_BRIEF.md incomplete \u2014 paste RWS portal brief",
+      "rounds_completed": 0,
+      "candidates_found": 0,
+      "submissions_made": 0,
+      "lanes_complete": []
+    }
+  }
+}

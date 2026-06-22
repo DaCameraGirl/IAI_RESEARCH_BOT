@@ -1,60 +1,45 @@
-# RWS Research Bot — Start Here
+# RWS Study Bot — One Project at a Time
 
-Exhaustive prior-art agent — runs **7 hunt lanes**, **burn-checks every
-candidate**, **red-teams itself**, and only shows you what would pass RWS
-review. Config: `system_prompt.md` + `ZERO_MISS_PROTOCOL.md`.
+Three studies. Bot does them **in order**, not all at once.
 
-In **Cursor**, rules auto-load from `.cursor/rules/rws-research-bot.mdc`.
+## Step 1 — Run the bot
 
-## 1. Open the workspace
-
-Open folder: `C:\Users\enter\OneDrive\Desktop\RWS_RESEARCHER`
-
-## 2. Load the bot brain
-
-In Cursor: the agent should read `system_prompt.md` (paste into Rules or tell
-the agent to follow it).
-
-In Claude.ai Projects: paste entire `system_prompt.md` into project instructions.
-
-## 3. Start a hunt (copy-paste one line)
+Double-click `RUN_BOT.ps1` or in terminal:
 
 ```
-hunt 25867
+python scripts/study_bot.py
 ```
 
-```
-hunt 25854
-```
+It prints which study is active and the exact command to give the agent.
+
+## Step 2 — Hunt (in Cursor chat)
 
 ```
-hunt 25853
-```
-(25853 blocked until you paste the RWS brief into `25853_.../STUDY_BRIEF.md`)
-
-## 4. What the bot does (zero-miss mode)
-
-- Loads dashboard + brief + full burn CSV
-- Runs **all 7 hunt lanes** before saying "hunt complete"
-- Inspects minimum 20 patents per round (citation graph 2-hop)
-- Runs `check_burned.py` + adversarial self-review on every candidate
-- Shows only strong matches with verbatim Ctrl+F highlights
-- Logs to `CANDIDATE_SCREEN.md` and `HUNT_LOG.md`
-
-**Deep hunt:** `hunt 25867 deep` — bot does not stop until all lanes checked.
-
-## 5. Quick duplicate check (terminal)
-
-```
-python scripts/check_burned.py 25867 US5613071
+hunt 25867 deep
 ```
 
-Returns `BURNED` or `CLEAR`.
+(Use whatever study ID the bot printed.)
 
-## Studies
+## Step 3 — Next project when ready
 
-| ID | Desktop folder | Patent | Critical date |
-|----|----------------|--------|---------------|
-| 25867 | 25867 Remote Memory (purple) | US7702742 | 2005-01-18 |
-| 25854 | 25854 Wafer Dividing (blue) | US8728916 | 2009-02-25 |
-| 25853 | 25853 LED Resin (green) | US8530250 | TBD |
+```
+python scripts/study_bot.py round-done
+python scripts/study_bot.py advance
+```
+
+## Queue order
+
+1. **25867** — Remote memory / lossy Ethernet (US7702742) ← **starts here**
+2. **25854** — Wafer fissure (US8728916)
+3. **25853** — LED resin (US8530250) — blocked until you paste RWS brief
+
+## Files
+
+| File | Purpose |
+|------|---------|
+| `bot_state.json` | Which study is active |
+| `BOT_QUEUE.md` | Human-readable queue |
+| `system_prompt.md` | Bot brain |
+| `ZERO_MISS_PROTOCOL.md` | Exhaustive hunt rules |
+| `scripts/study_bot.py` | One-at-a-time runner |
+| `scripts/check_burned.py` | Duplicate checker |
