@@ -5,7 +5,9 @@ Desktop.ini
 
 # Editor / local agent config
 .claude/
-.cursor/
+.cursor/*
+!.cursor/rules/
+!.cursor/rules/**
 
 # Browser automation junk
 **/Crashpad/

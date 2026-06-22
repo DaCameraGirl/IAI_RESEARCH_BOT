@@ -1,8 +1,10 @@
 # RWS Research Bot — Start Here
 
-This is **not** a self-running app. It is an **AI research agent** you spin up
-in Cursor or Claude. It hunts prior art, screens duplicates, and drafts
-submission blocks for your 3 active patent studies.
+Exhaustive prior-art agent — runs **7 hunt lanes**, **burn-checks every
+candidate**, **red-teams itself**, and only shows you what would pass RWS
+review. Config: `system_prompt.md` + `ZERO_MISS_PROTOCOL.md`.
+
+In **Cursor**, rules auto-load from `.cursor/rules/rws-research-bot.mdc`.
 
 ## 1. Open the workspace
 
@@ -30,13 +32,16 @@ hunt 25853
 ```
 (25853 blocked until you paste the RWS brief into `25853_.../STUDY_BRIEF.md`)
 
-## 4. What the bot does
+## 4. What the bot does (zero-miss mode)
 
-- Reads `_DASHBOARD.md` + study `STUDY_BRIEF.md`
-- Checks candidates against `known_art/known_citations.csv`
-- Surfaces only strong, pre-2005/2009/2010 matches (per study)
-- Outputs ready-to-paste RWS submission blocks with verbatim highlights
-- Logs candidates in `CANDIDATE_SCREEN.md`
+- Loads dashboard + brief + full burn CSV
+- Runs **all 7 hunt lanes** before saying "hunt complete"
+- Inspects minimum 20 patents per round (citation graph 2-hop)
+- Runs `check_burned.py` + adversarial self-review on every candidate
+- Shows only strong matches with verbatim Ctrl+F highlights
+- Logs to `CANDIDATE_SCREEN.md` and `HUNT_LOG.md`
+
+**Deep hunt:** `hunt 25867 deep` — bot does not stop until all lanes checked.
 
 ## 5. Quick duplicate check (terminal)
 
