@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import contextlib
+import io
 import json
 import shutil
 import subprocess
@@ -54,9 +56,11 @@ class TestStudyBot(unittest.TestCase):
         before = self.study_bot.load_state()
         sid = before["current_study"]
         rounds_before = before["studies"][sid]["rounds_completed"]
-        self.study_bot.cmd_round_done(before)
+        with contextlib.redirect_stdout(io.StringIO()):
+            self.study_bot.cmd_round_done(before)
         after = self.study_bot.load_state()
         self.assertEqual(after["studies"][sid]["rounds_completed"], rounds_before + 1)
+        self.assertEqual(self.study_bot.load_state()["studies"][sid]["rounds_completed"], rounds_before + 1)
 
     def test_status_cli(self) -> None:
         proc = subprocess.run(

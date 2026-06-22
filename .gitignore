@@ -22,3 +22,8 @@ Desktop.ini
 *.tmp
 *.crdownload
 *.part
+
+# Python
+__pycache__/
+*.py[cod]
+.pytest_cache/
