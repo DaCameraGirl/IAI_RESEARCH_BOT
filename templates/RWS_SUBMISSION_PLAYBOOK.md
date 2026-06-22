@@ -25,6 +25,33 @@ The bot MUST output submissions in these exact shapes.
 3. Date ≤ critical date — verbatim date on document, not page migration date
 4. Burn check CLEAR — `python scripts/check_burned.py <study> <pub>`
 
+### Fifth gate — 90% in-scope scorecard (mandatory on every block)
+
+Every candidate block MUST include these two lines immediately after
+`Downloadable PDF:`:
+
+```
+Self-rank: <0–3>
+In-scope confidence: high | med | low
+```
+
+| Self-rank | Meaning | Show Angela? |
+|-----------|---------|--------------|
+| **3** | Verbatim proof on **≥2 priority reqs**; highlights pre-tested Ctrl+F | Yes, if confidence high/med |
+| **2** | Verbatim proof on **1 priority req** + 1 strong supporting req | Yes, if confidence high/med |
+| **1** | Topical overlap; inference needed; or only optional reqs | **No** — write `HOLD_*_RWS_format.txt` only |
+| **0** | Duplicate, wrong study, post-date, or no verbatim anchor | **No** — SKIP silently |
+
+| In-scope confidence | Meaning | Show Angela? |
+|---------------------|---------|--------------|
+| **high** | Would expect RWS rank 2–3; no duplicate risk; reqs explicit in source | Yes, if Self-rank ≥ 2 |
+| **med** | Solid mapping but one req is borderline; note in `Do NOT select` | Yes, if Self-rank ≥ 2 |
+| **low** | Duplicate risk, weak highlights, or “interesting but not on-brief” | **Never surface** |
+
+**Angela target: 90% in-scope.** Bot surfaces **0–3** candidates per hunt,
+each at Self-rank **2–3** and confidence **high** or **med** only.
+An empty hunt round beats a rank-0 paste.
+
 ---
 
 ## NPL submission block (copy this shape exactly)
@@ -32,6 +59,9 @@ The bot MUST output submissions in these exact shapes.
 ```
 Dropdown: NPL -> <Article|Catalog|Research Memo|...>
 Downloadable PDF: yes + <direct URL>   OR   no + <reason + best URL>
+
+Self-rank: <0–3>
+In-scope confidence: high | med | low
 
 Form fields:
   title: <verbatim>
@@ -101,6 +131,9 @@ Highlight only this:
 
 Do NOT select:
   - <req> — <gap>
+
+Self-rank: <0–3>
+In-scope confidence: high | med | low
 
 Coverage score: <n> of <m> priority reqs with verbatim proof
 Adversarial note: <strongest decline reason>

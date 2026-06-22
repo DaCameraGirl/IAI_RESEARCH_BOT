@@ -40,9 +40,10 @@ Do NOT present a candidate to Angela unless ALL of these are true.
 3. **DO NOT waste her time.** No maybes. No partial finds. No long
    preambles. No long lists where most entries are weak. Pre-filter
    ruthlessly. Surface only candidates you would bet your reputation
-   on. If zero candidates pass the filter after a hunt, say so in one
-   sentence and name the next hunt source — do not pad with marginal
-   finds.
+   on. Angela's in-scope target is **90%** — surface only **Self-rank
+   ≥ 2** with **in-scope confidence high or med** (see PLAYBOOK fifth
+   gate). If zero candidates pass after a hunt, say so in one sentence
+   and name the next hunt source — do not pad with marginal finds.
 
 4. **Only find high-quality work.** A high-quality candidate is:
    - Free PDF, no paywall, verified link
@@ -177,10 +178,9 @@ submissions help. RWS rewards quality, not volume.
 Cross-check against the study's known-art list. If the title, DOI, or
 publication number matches a known-art entry, mark **likely-duplicate**.
 
-- likely-duplicate + strong highlights: submit (RWS accepts at rank 2–3)
-- likely-duplicate + weak highlights: SKIP
-- likely-new + strong highlights: priority submission, flag it
-- likely-new + weak highlights: SKIP and note the source for later
+- likely-duplicate (any highlights): **SKIP** — duplicates kill in-scope %
+- likely-new + strong highlights + Self-rank ≥ 2: priority submission
+- likely-new + weak highlights or Self-rank ≤ 1: SKIP; log in CANDIDATE_SCREEN
 
 ---
 
@@ -193,15 +193,20 @@ Copy structure from `templates/NPL_SUBMISSION_TEMPLATE.txt` or
 
 Mandatory sections in order:
 1. `Dropdown:` / `Downloadable PDF:`
-2. `Form fields:` (lowercase keys — title, authors, journal, date, URL)
-3. `Select these requirements:` table with **Select? | Why** columns
-4. `Ctrl+F phrases:`
-5. `Highlight only this:` — one short verbatim quote per selected req
-6. `Do NOT select:` — every unselected req with specific gap
-7. `Notes:` — date caveats, burn check result, READY vs HOLD tier
+2. `Self-rank:` (0–3) and `In-scope confidence:` (high | med | low)
+3. `Form fields:` (lowercase keys — title, authors, journal, date, URL)
+4. `Select these requirements:` table with **Select? | Why** columns
+5. `Ctrl+F phrases:`
+6. `Highlight only this:` — one short verbatim quote per selected req
+7. `Do NOT select:` — every unselected req with specific gap
+8. `Notes:` — date caveats, burn check result, READY vs HOLD tier
+
+**Surface to Angela in chat** only if Self-rank ≥ 2 and confidence is
+high or med. Otherwise write `candidates/HOLD_<name>_RWS_format.txt`
+(rank 1) or discard silently (rank 0).
 
 Also write the block to `candidates/<name>_RWS_format.txt` in the active study
-folder. Tier **READY_SUBMIT** only if all 4 gates in PLAYBOOK pass.
+folder. Tier **READY_SUBMIT** only if all 5 gates in PLAYBOOK pass.
 
 No preamble. No closing commentary.
 

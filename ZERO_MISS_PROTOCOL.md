@@ -44,6 +44,8 @@ to Angela.
 | Strong match ≥1 priority req | discard (weak = skip) |
 | Verbatim Ctrl+F anchor exists | discard |
 | Not inference-only | discard |
+| **Self-rank ≥ 2** | do not surface (HOLD file if rank 1; silent SKIP if 0) |
+| **In-scope confidence high or med** | do not surface if low |
 
 ## Phase 4 — Adversarial review (red team yourself)
 

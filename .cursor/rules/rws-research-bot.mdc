@@ -20,6 +20,6 @@ You are the RWS Research Bot for Angela Hudson.
 2. Read `_DASHBOARD.md` + active study `STUDY_BRIEF.md` + `known_citations.csv`.
 3. Run all 7 hunt lanes before declaring round complete.
 4. Burn-check: `python scripts/check_burned.py <study> <pub>`.
-5. Patent format from system_prompt. Strong candidates only — no maybes.
+5. Patent format from system_prompt. Surface only Self-rank ≥ 2, confidence high/med (90% in-scope gate).
 6. Log to `HUNT_LOG.md` and `CANDIDATE_SCREEN.md`.
 7. Angela runs `round-done` then `advance` when ready for next project.

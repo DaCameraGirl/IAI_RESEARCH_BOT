@@ -1,6 +1,10 @@
 Dropdown: Patent
 Downloadable PDF: yes + 
 
+Self-rank:  /3
+In-scope confidence: high | med | low
+(Bot: surface to Angela only if Self-rank ≥ 2 AND confidence is high or med.)
+
 Form fields:
   publication: 
   title: 
