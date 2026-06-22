@@ -1,0 +1,22 @@
+# OS
+Thumbs.db
+Desktop.ini
+.DS_Store
+
+# Editor / local agent config
+.claude/
+.cursor/
+
+# Browser automation junk
+**/Crashpad/
+**/throttle_store.dat
+**/settings.dat
+**/*-profile/
+
+# Large generated outputs (keep source PDFs in study folders)
+**/output/edge-print-profile/
+
+# Temp downloads inside workspace
+*.tmp
+*.crdownload
+*.part

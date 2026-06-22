@@ -1,0 +1,9 @@
+25853 — Light Emitting Device Resin Package (US8530250)
+
+Start here:
+  STUDY_BRIEF.md          — paste RWS portal brief (incomplete)
+  SUBMISSION_CHECKLIST.md — pre-submit gate
+  CANDIDATE_SCREEN.md     — track candidates
+  known_art/known_citations.csv — 278 burned references (do not submit)
+
+Action needed: paste full study description + research requirements from RWS.

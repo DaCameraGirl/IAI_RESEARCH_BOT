@@ -1,0 +1,10 @@
+25854 — Semiconductor Wafer Dividing (US8728916)
+
+Start here:
+  STUDY_BRIEF.md          — full study description + RR 1.1 / 1.2 / 1.3
+  SUBMISSION_CHECKLIST.md — pre-submit gate
+  CANDIDATE_SCREEN.md     — track candidates and outcomes
+  known_art/known_citations.csv — 527 burned references (do not submit)
+
+Current RWS focus: Research Requirement 1.2 (fissure creation).
+Critical date: 2009-02-25 preferred, 2010-02-04 hard limit.
