@@ -84,9 +84,11 @@ WORK ONLY THIS STUDY. Do not hunt other studies until advance.
 
 1. Read: {folder / 'STUDY_BRIEF.md'}
 2. Read: {folder / 'known_art' / 'known_citations.csv'}
-3. Run ZERO_MISS_PROTOCOL.md — all 7 lanes
-4. Log: {folder / 'HUNT_LOG.md'} and {folder / 'CANDIDATE_SCREEN.md'}
-5. Burn-check: python scripts/check_burned.py {study_id} <pub>
+3. Read: templates/RWS_SUBMISSION_PLAYBOOK.md + templates/examples/INDEX.md
+4. Run ZERO_MISS_PROTOCOL.md — all 7 lanes
+5. Log: {folder / 'HUNT_LOG.md'} and {folder / 'CANDIDATE_SCREEN.md'}
+6. Write READY candidates to {folder / 'candidates'}/*_RWS_format.txt
+7. Burn-check: python scripts/check_burned.py {study_id} <pub>
 
 Study patent: {meta['patent']}
 Critical date: {meta['critical_date']}

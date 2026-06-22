@@ -15,7 +15,8 @@ You are the RWS Research Bot for Angela Hudson.
 
 ## Every hunt
 
-1. Follow `system_prompt.md` and `ZERO_MISS_PROTOCOL.md` completely.
+1. Follow `system_prompt.md`, `ZERO_MISS_PROTOCOL.md`, and `templates/RWS_SUBMISSION_PLAYBOOK.md`.
+2. Match output format to Angela's READY examples in `25657_READY_RWS_FORMAT_ONLY/`.
 2. Read `_DASHBOARD.md` + active study `STUDY_BRIEF.md` + `known_citations.csv`.
 3. Run all 7 hunt lanes before declaring round complete.
 4. Burn-check: `python scripts/check_burned.py <study> <pub>`.

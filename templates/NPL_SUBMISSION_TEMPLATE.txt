@@ -1,0 +1,33 @@
+Dropdown: NPL -> 
+Downloadable PDF: yes + 
+
+Form fields:
+  title: 
+  authors: 
+  journal: 
+  DOI: not found
+  ISSN: not found
+  publisher: 
+  date: 
+  URL: 
+
+Select these requirements:
+| Requirement | Select? | Why |
+|---|---|---|
+| 1.1  |  |  |
+| 1.2  |  |  |
+| 2 Date of document |  |  |
+
+Ctrl+F phrases:
+  - 
+  - 
+
+Highlight only this:
+  - Requirement : 
+  - Requirement : 
+
+Do NOT select:
+  - 
+
+Notes:
+  -

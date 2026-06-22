@@ -9,6 +9,13 @@ sees anything.
 
 Read and obey `ZERO_MISS_PROTOCOL.md` on every `hunt` command.
 
+Read `templates/RWS_SUBMISSION_PLAYBOOK.md` before writing any submission block.
+Match Angela's proven format from `25657_READY_RWS_FORMAT_ONLY/` — see
+`templates/examples/INDEX.md`. Output MUST use the `Select? | Why` table,
+`Highlight only this`, and `Do NOT select` sections exactly as in her
+**READY_SUBMIT** examples. HOLD-tier candidates go to `HOLD_*_RWS_format.txt`,
+not Angela's inbox.
+
 **Operating standard:** If you would not stake your reputation that RWS accepts
 the submission at rank 1–2, do not show it. But also: stopping early when strong
 art may still exist is a failure. Complete all 7 hunt lanes before declaring a
@@ -179,76 +186,24 @@ publication number matches a known-art entry, mark **likely-duplicate**.
 
 ## SUBMISSION OUTPUT FORMAT
 
-Follows the citation block from RULES OF ENGAGEMENT above. The citation
-block fills the Form fields portion below — do not duplicate it.
+Use Angela's exact portal-paste shape from `templates/RWS_SUBMISSION_PLAYBOOK.md`.
+Copy structure from `templates/NPL_SUBMISSION_TEMPLATE.txt` or
+`templates/PATENT_SUBMISSION_TEMPLATE.txt`. Gold examples:
+`25657_READY_RWS_FORMAT_ONLY/1_READY_SUBMIT_Philips_Identification_Product_Range_2004-10.txt`
 
-```
-Novelty: likely-new
-Dropdown: NPL → Article
-Downloadable PDF: yes + <direct link>
-Document date: <YYYY-MM-DD> | Critical date: <study's> | Date OK? yes
+Mandatory sections in order:
+1. `Dropdown:` / `Downloadable PDF:`
+2. `Form fields:` (lowercase keys — title, authors, journal, date, URL)
+3. `Select these requirements:` table with **Select? | Why** columns
+4. `Ctrl+F phrases:`
+5. `Highlight only this:` — one short verbatim quote per selected req
+6. `Do NOT select:` — every unselected req with specific gap
+7. `Notes:` — date caveats, burn check result, READY vs HOLD tier
 
-Form fields:
-  - Title:
-  - Authors:
-  - Journal / Publisher:
-  - DOI:
-  - ISSN:
-  - Publisher:
-  - Date:
-  - URL:
+Also write the block to `candidates/<name>_RWS_format.txt` in the active study
+folder. Tier **READY_SUBMIT** only if all 4 gates in PLAYBOOK pass.
 
-Select these requirements:
-  | Requirement | Why it matches (one line) |
-  |-------------|---------------------------|
-
-Ctrl+F phrases (must appear verbatim in the PDF):
-  - "<phrase>"
-  - "<phrase>"
-
-Highlight only this (ONE short sentence per requirement, verbatim):
-  - <requirement-name> → "<verbatim quote>"
-
-Do NOT select:
-  - <requirement-name> — <why weak>
-```
-
-No preamble. No closing commentary. No "let me know if..." closer.
-
----
-
-## PATENT SUBMISSION OUTPUT FORMAT
-
-Use for studies 25867, 25854, 25853 when the candidate is a patent or
-published application.
-
-```
-Novelty: likely-new | likely-duplicate
-Type: Patent
-Publication: <USxxxxxxxA1/B2 or equivalent>
-Assignee: <verbatim>
-Inventor(s): <verbatim>
-Publication date: <YYYY-MM-DD> | Critical date: <study's> | Date OK? yes/no
-PDF: <Google Patents or Espacenet direct PDF link>
-Burn check: python scripts/check_burned.py <study> <pub> → CLEAR
-
-Select these requirements:
-  | Req | Why it matches (one line, explicit) |
-
-Do NOT select:
-  | Req | Gap (one line) |
-
-Ctrl+F phrases (must appear verbatim in PDF):
-  - "<phrase>"
-
-Highlight only this (ONE short sentence per selected req, verbatim):
-  - <req> → "<verbatim quote>"
-
-Coverage score: <N> of <M> priority reqs with verbatim proof
-Adversarial note: <strongest reason RWS might decline, and why you submit anyway OR skip>
-```
-
-A candidate with coverage score 0 on current RWS lead requirements → SKIP.
+No preamble. No closing commentary.
 
 ---
 

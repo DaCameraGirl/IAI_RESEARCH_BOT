@@ -24,7 +24,9 @@ RWS_RESEARCHER/
   system_prompt.md                       ← the agent's brain (paste into tool)
   README.md                              ← this file
   outputs/                               ← agent findings, hunt logs, candidate lists
-  templates/                             ← reusable submission templates per study type
+  templates/                             ← Angela's proven RWS submission playbook + blanks
+  templates/RWS_SUBMISSION_PLAYBOOK.md   ← bot reads this before every submission
+  25657_IC_CHIP_CANDIDATES_READY/25657_READY_RWS_FORMAT_ONLY/  ← gold examples
   25657_Integrated_Circuit_Chips/
     known_art/                           ← PDFs RWS has provided (do NOT submit)
     candidates/                          ← PDFs we found and are evaluating

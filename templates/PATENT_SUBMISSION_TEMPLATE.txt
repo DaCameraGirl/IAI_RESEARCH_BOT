@@ -1,0 +1,34 @@
+Dropdown: Patent
+Downloadable PDF: yes + 
+
+Form fields:
+  publication: 
+  title: 
+  assignee: 
+  inventors: 
+  publication date: 
+  URL: 
+
+Select these requirements:
+| Requirement | Select? | Why |
+|---|---|---|
+| 1.1  |  |  |
+| 1.2  |  |  |
+| 1.7  |  |  |
+| 1.8  |  |  |
+
+Ctrl+F phrases:
+  - 
+  - 
+
+Highlight only this:
+  - Requirement : 
+  - Requirement : 
+
+Do NOT select:
+  - 
+
+Coverage score:  of  priority reqs
+Adversarial note: 
+Notes:
+  - Burn check: python scripts/check_burned.py <study> <pub> → CLEAR

@@ -38,7 +38,8 @@ python scripts/study_bot.py advance
 | File | Purpose |
 |------|---------|
 | `bot_state.json` | Which study is active |
-| `BOT_QUEUE.md` | Human-readable queue |
+| `templates/RWS_SUBMISSION_PLAYBOOK.md` | **Angela's proven submit format** |
+| `25657_READY_RWS_FORMAT_ONLY/` | Gold examples that worked |
 | `system_prompt.md` | Bot brain |
 | `ZERO_MISS_PROTOCOL.md` | Exhaustive hunt rules |
 | `scripts/study_bot.py` | One-at-a-time runner |
