@@ -2,58 +2,56 @@
 
 Last updated: 2026-06-22
 
+## ACTIVE — 25867 Remote Memory Transactions (Lossy Ethernet)
+- **Type:** Prior art search (patent + NPL)
+- **Study patent:** US7702742B2
+- **Critical date:** 2005-01-18
+- **Current focus:** Single-ref ideal — remote memory/host-bus/I/O-bus to remote
+  node + priority packetization/queuing + lossy Ethernet congestion drops +
+  per-priority sequencing/ACK/retransmit; RR 1.7, 1.8, 1.13
+- **Leads:** 2026-06-22, 2026-06-16, 2026-06-08
+- **Folder:** `25867_Remote_Memory_Transactions\`
+- **Desktop shortcut:** `25867 Remote Memory` (purple)
+- **Submissions so far:** 0
+
 ## ACTIVE — 25854 Semiconductor Wafer Dividing
 - **Type:** Prior art search (patent + NPL)
 - **Study patent:** US8728916B2 (Nichia Corp)
 - **Critical date (preferred):** 2009-02-25 | hard: 2010-02-04
-- **Current focus:** RR **1.2** — fissure (13) created by irradiation step (1.1),
-  linking adjacent processed portions (12); division along fissure (1.3)
+- **Current focus:** RR **1.2** — fissure linking adjacent processed portions
 - **Lead added:** 2026-06-16
 - **Folder:** `25854_Semiconductor_Wafer_Dividing\`
-- **Next action:** Hunt pre-2009 prior art for internal laser processed portions
-  + surface-linking fissure on sapphire substrate; screen against
-  `known_art/known_citations.csv` (527 burned entries)
+- **Desktop shortcut:** `25854 Wafer Dividing` (blue)
 - **Submissions so far:** 0
 
 ## ACTIVE — 25853 Light Emitting Device Resin Package
 - **Type:** Prior art search (patent + NPL)
 - **Study patent:** US8530250B2 (Nichia Corp)
-- **Critical date:** TBD — paste RWS portal brief into `STUDY_BRIEF.md`
+- **Critical date:** TBD — paste RWS portal brief
 - **Folder:** `25853_Light_Emitting_Device_Resin_Package\`
-- **Next action:** Paste full RWS study description + research requirements from
-  portal; then hunt
+- **Desktop shortcut:** `25853 LED Resin` (green)
 - **Submissions so far:** 0
 
 ## ACTIVE — 25803 Hymn Research - Malagasy
-- **Type:** Copyright Research
-- **Reward:** $9,000 pool
 - **Deadline:** 2026-06-12
 - **Folder:** `25803_Hymn_Research_Malagasy\`
-- **Submissions so far:** 0
 
 ## ACTIVE — 25657 Integrated Circuit Chips
-- **Type:** Invalidity (CrowdSearch)
-- **Reward:** $5,000
 - **Deadline:** 2026-05-27
-- **Target patent:** US7373531B2
 - **Folder:** `25657_IC_CHIP_CANDIDATES_READY\`
-- **Submissions so far:** 0
 
 ## ACTIVE — 25696 Battery Module
-- **Type:** CrowdSearch Plus
 - **Deadline:** 2026-05-26
 - **Folder:** `25696_Battery_Module\`
-- **Submissions so far:** 0
 
 ## CLOSED / HISTORICAL
-- 25671 Inhalers — Final Review
-- 25576 Smoking System — Final Review
-- 25429 Wireless Devices — Completed
+- 25671 Inhalers, 25576 Smoking System, 25429 Wireless Devices
 
-## Folder convention
-`NNNNN_StudyName\{known_art, candidates, reference, submitted}\`
+## Desktop study folders (colored, not yellow)
+Junctions on Desktop → repo folders. Refresh Desktop (F5) if icons lag.
 
-## Quick links
-- Agent prompt: `system_prompt.md`
-- 25854 brief: `25854_Semiconductor_Wafer_Dividing\STUDY_BRIEF.md`
-- 25854 checklist: `25854_Semiconductor_Wafer_Dividing\SUBMISSION_CHECKLIST.md`
+| Desktop name | Color | Repo path |
+|--------------|-------|-----------|
+| `25854 Wafer Dividing` | Blue | `25854_Semiconductor_Wafer_Dividing` |
+| `25853 LED Resin` | Green | `25853_Light_Emitting_Device_Resin_Package` |
+| `25867 Remote Memory` | Purple | `25867_Remote_Memory_Transactions` |

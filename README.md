@@ -47,13 +47,17 @@ RWS_RESEARCHER/
 
 ## Active studies (as of 2026-06-22)
 
+- **25867 — Remote Memory Transactions** (prior art search). Study patent
+  US7702742B2. Critical date 2005-01-18. Focus: lossy **Ethernet** congestion
+  drops, priority queues, per-priority sequencing/ACK/retransmit (RR 1.7, 1.8,
+  1.13). Desktop folder: `25867 Remote Memory` (purple).
 - **25854 — Semiconductor Wafer Dividing** (prior art search). Study patent
   US8728916B2. Critical date preferred 2009-02-25. Current RWS focus: RR 1.2
-  (fissure linking adjacent laser-formed processed portions). Full brief in
-  `25854_Semiconductor_Wafer_Dividing/STUDY_BRIEF.md`.
+  (fissure linking adjacent laser-formed processed portions). Desktop folder:
+  `25854 Wafer Dividing` (blue).
 - **25853 — Light Emitting Device Resin Package** (prior art search). Study
-  patent US8530250B2. RWS portal brief not yet pasted — see
-  `25853_Light_Emitting_Device_Resin_Package/STUDY_BRIEF.md`.
+  patent US8530250B2. RWS portal brief not yet pasted. Desktop folder:
+  `25853 LED Resin` (green).
 - **25657 — Integrated Circuit Chips** ($5,000 invalidity study,
   deadline 2026-05-27). Target patent US7373531B2 (RFCyber Corp). Hunt
   Philips/NXP NFC chips PN511/PN512/PN531 dated ≤ Jan 10, 2005. Full

@@ -1,0 +1,11 @@
+25867 — Remote Memory Transactions / Lossy Ethernet (US7702742)
+
+Start here:
+  STUDY_BRIEF.md
+  SUBMISSION_CHECKLIST.md
+  CANDIDATE_SCREEN.md
+  known_art/known_citations.csv
+
+Critical date: 2005-01-18
+Current focus: RR 1.7, 1.8, 1.13 + single-ref combo of priority queues,
+  lossy Ethernet congestion drops, per-priority ACK/retransmit.
