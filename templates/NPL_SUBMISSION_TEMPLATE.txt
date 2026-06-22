@@ -1,5 +1,7 @@
 Dropdown: NPL -> 
 Downloadable PDF: yes + 
+Access: open | school
+(Use school for Elsevier/ScienceDirect/J Pharm Sci — Angela pulls PDF via library login)
 
 Self-rank:  /3
 In-scope confidence: high | med | low

@@ -1,6 +1,6 @@
 {
   "mode": "one_at_a_time",
-  "current_study": "25867",
+  "current_study": "25854",
   "queue": [
     "25867",
     "25854",
@@ -8,14 +8,14 @@
   ],
   "studies": {
     "25867": {
-      "status": "active",
-      "rounds_completed": 0,
+      "status": "done",
+      "rounds_completed": 1,
       "candidates_found": 0,
       "submissions_made": 0,
       "lanes_complete": []
     },
     "25854": {
-      "status": "queued",
+      "status": "active",
       "rounds_completed": 0,
       "candidates_found": 0,
       "submissions_made": 0,

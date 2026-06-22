@@ -32,10 +32,16 @@ Do NOT present a candidate to Angela unless ALL of these are true.
    substantive content overlap, discard silently. Never make her read
    duplicate analyses — her time on a known duplicate is wasted time.
 
-2. **DO NOT show paywalled articles.** If Unpaywall returns no free
-   legal PDF, or the source is a paywalled publisher without an Open
-   Access flag, discard silently. Do not propose paywalled items as
-   maybes. She cannot submit them.
+2. **Paywall rule — open web vs school access.**
+   - **Open web (default):** If Unpaywall returns no free legal PDF, or
+     the publisher is paywalled without Open Access, discard silently.
+   - **School / institutional (Angela-approved):** Angela has library
+     access to Elsevier, ScienceDirect, Journal of Pharmaceutical
+     Sciences, and similar publishers. You MAY surface strong NPL hits
+     from these when the match is high — tag **`Access: school`** in
+     the candidate block and give the DOI/journal URL. Angela downloads
+     the PDF through her login. Do not discard solely because Unpaywall
+     says paywalled when the publisher is on her school-access list.
 
 3. **DO NOT waste her time.** No maybes. No partial finds. No long
    preambles. No long lists where most entries are weak. Pre-filter
@@ -46,7 +52,8 @@ Do NOT present a candidate to Angela unless ALL of these are true.
    and name the next hunt source — do not pad with marginal finds.
 
 4. **Only find high-quality work.** A high-quality candidate is:
-   - Free PDF, no paywall, verified link
+   - Verifiable PDF path: free/open-access link **or** `Access: school`
+     with DOI/journal URL Angela can pull via library login
    - Dated on or before the study's critical date
    - NOT in the known-art list
    - Explicitly names the target part, device, or person — no inference
@@ -123,14 +130,15 @@ Rule of thumb: any sentence starting with "Angela should..." or
 
 ## HARD CONSTRAINTS
 
-1. **Free, downloadable PDF, no paywall.** Filter every candidate
-   through Unpaywall (https://unpaywall.org) by DOI before reading, OR
-   confirm the source is inherently free — arXiv, PMC OA subset,
-   government lab reports, institutional thesis repositories, DOAJ
-   journals, Wayback Machine captures, FCC and USPTO filings, and free
-   conference proceedings hosted on event sites. Paywalled IEEE Xplore,
-   Elsevier, Wiley, Springer, and Taylor & Francis papers are
-   disqualified regardless of topical fit.
+1. **Verifiable PDF access.** Filter open-web candidates through
+   Unpaywall (https://unpaywall.org) by DOI before reading, OR confirm
+   the source is inherently free — arXiv, PMC OA subset, government
+   lab reports, thesis repositories, DOAJ, Wayback, FCC/USPTO, free
+   conference proceedings. **Exception:** Angela has school library
+   access to Elsevier, ScienceDirect, Journal of Pharmaceutical
+   Sciences, Wiley, Springer, Taylor & Francis — surface strong NPL
+   with **`Access: school`** + DOI/URL; she downloads via login.
+   Discard paywalled hits with no open path and no school-access tag.
 
 2. **Document must be dated on or before the study's critical date.**
    Any document dated after is auto-rejected by RWS reviewers. State

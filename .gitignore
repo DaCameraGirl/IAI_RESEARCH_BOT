@@ -27,3 +27,14 @@ Desktop.ini
 __pycache__/
 *.py[cod]
 .pytest_cache/
+
+# Local runtime / agent
+terminals/
+agent-tools/
+
+# Generated hunt outputs (rebuilt each run)
+**/candidates/*_RWS_format.txt
+
+# Unrelated local-only study dumps (not part of bot repo)
+25657_IC_CHIP_CANDIDATES_READY/
+Battery Module/

@@ -36,6 +36,24 @@ RWS_RESEARCHER/
     (same subfolder structure when active)
 ```
 
+## RWS Research Bot (local web app)
+
+Double-click the desktop shortcut **RWS Research Bot** (Research Genie icon).
+
+- Starts at http://127.0.0.1:7842
+- **Run Deep Hunt** — 8 lanes, up to 300 patents, strict burn gate
+- **Candidates** — READY/HOLD drafts with PDF URLs and req tables
+- **Burn check** — verify a publication against `known_citations.csv`
+
+```powershell
+# First-time setup
+pip install -r requirements.txt
+python scripts\build_genie_icon.py
+powershell -File scripts\create-desktop-bot-launcher.ps1
+```
+
+Or run: `.\RUN_BOT.ps1`
+
 ## How to use the agent
 
 1. Open whichever tool you're spinning the agent up in (Claude Code /
