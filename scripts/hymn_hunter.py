@@ -206,6 +206,7 @@ class HymnHuntEngine:
                 self.log(f"Searched {self.hymns_searched}/{len(hymns)} hymns…", "info")
 
         self._write_candidate_screen(folder, hymnal_sources, leads)
+        self._write_candidate_files(folder, language, hymnal_sources, leads)
         self._update_hunt_log(folder, len(hymns))
 
         self.log(
@@ -254,6 +255,49 @@ class HymnHuntEngine:
             lines.append("")
         lines += ["## HOLD (rank 1 — verify before surfacing)", "", "- (none)"]
         (folder / "CANDIDATE_SCREEN.md").write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def _write_candidate_files(
+        self, folder: Path, language: str, hymnal_sources: list[dict], leads: list[dict]
+    ) -> None:
+        """Write one file per lead into candidates/ so the web app's Candidates
+        tab (which reads candidates/*.txt) actually shows hymn leads — writing
+        only to CANDIDATE_SCREEN.md left that tab empty for these studies.
+        """
+        cand_dir = folder / "candidates"
+        cand_dir.mkdir(parents=True, exist_ok=True)
+        for old in cand_dir.glob("*_hymn_lead.txt"):
+            old.unlink(missing_ok=True)
+
+        def _slug(text: str, limit: int = 60) -> str:
+            keep = "".join(c if c.isalnum() or c in " -_" else "" for c in text)
+            return "_".join(keep.split())[:limit] or "item"
+
+        for hit in hymnal_sources:
+            fname = f"HYMNAL_SOURCE_{_slug(hit['title'])}_hymn_lead.txt"
+            (cand_dir / fname).write_text(
+                "Type: Candidate hymnal source (search within for the full hymn list)\n"
+                f"Language: {language}\n"
+                f"Source: {hit['source']}\n"
+                f"Title: {hit['title']}\n"
+                f"URL: {hit['url']}\n"
+                "Status: UNVERIFIED — open and search within before submitting anything from it\n",
+                encoding="utf-8",
+            )
+
+        for lead in leads:
+            for i, hit in enumerate(lead["hits"]):
+                fname = f"{_slug(lead['hymn'])}_{i}_hymn_lead.txt"
+                (cand_dir / fname).write_text(
+                    "Type: Hymn translation lead\n"
+                    f"Hymn: {lead['hymn']}\n"
+                    f"Language: {language}\n"
+                    f"Source: {hit['source']}\n"
+                    f"Title: {hit['title']}\n"
+                    f"URL: {hit['url']}\n"
+                    "Status: UNVERIFIED — read the source and confirm translator/date/copyright "
+                    "before submitting; RWS requires a real screenshot attachment\n",
+                    encoding="utf-8",
+                )
 
     def _update_hunt_log(self, folder: Path, total_hymns: int) -> None:
         log_path = folder / "HUNT_LOG.md"
