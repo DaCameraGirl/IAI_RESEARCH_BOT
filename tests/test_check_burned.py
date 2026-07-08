@@ -13,7 +13,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 
 import check_burned  # noqa: E402
 
-STUDIES = ("25867", "25854", "25853")
+STUDIES = ("26052", "25974")
 
 
 class TestNormalize(unittest.TestCase):
@@ -38,15 +38,14 @@ class TestLoadBurned(unittest.TestCase):
             burned = check_burned.load_burned(study_id)
             self.assertGreater(len(burned), 0, f"{study_id} burn list empty")
 
-    def test_25867_has_expected_size(self) -> None:
-        burned = check_burned.load_burned("25867")
-        self.assertGreaterEqual(len(burned), 160)
+    def test_26052_has_expected_size(self) -> None:
+        burned = check_burned.load_burned("26052")
+        self.assertGreaterEqual(len(burned), 900)
 
     def test_study_patents_are_burned(self) -> None:
         expected = {
-            "25867": "US7702742",
-            "25854": "US8728916",
-            "25853": "US8530250",
+            "26052": "US11229891",
+            "25974": "WO2025201324",
         }
         for study_id, patent in expected.items():
             burned = check_burned.load_burned(study_id)
@@ -77,22 +76,22 @@ class TestCheckBurnedCLI(unittest.TestCase):
         )
 
     def test_burned_citation(self) -> None:
-        proc = self.run_cli("25867", "US5613071")
+        proc = self.run_cli("26052", "US10792630")
         self.assertEqual(proc.returncode, 0)
         self.assertIn("BURNED", proc.stdout)
 
     def test_study_patent_with_kind_code_burned(self) -> None:
-        proc = self.run_cli("25867", "US7702742B2")
+        proc = self.run_cli("26052", "US11229891B2")
         self.assertEqual(proc.returncode, 0)
         self.assertIn("BURNED", proc.stdout)
 
     def test_family_member_application_burned(self) -> None:
-        proc = self.run_cli("25867", "US20090319634A1", "US20100205502A1")
+        proc = self.run_cli("26052", "US20070297281A1")
         self.assertEqual(proc.returncode, 0)
-        self.assertEqual(proc.stdout.count("BURNED"), 2)
+        self.assertEqual(proc.stdout.count("BURNED"), 1)
 
     def test_clear_candidate(self) -> None:
-        proc = self.run_cli("25867", "US6718392")
+        proc = self.run_cli("26052", "US9999999")
         self.assertEqual(proc.returncode, 0)
         self.assertIn("CLEAR", proc.stdout)
 

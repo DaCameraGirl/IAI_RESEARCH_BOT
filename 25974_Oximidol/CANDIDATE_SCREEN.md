@@ -1,4 +1,4 @@
-# Candidate Screen — updated 2026-07-03 11:00
+# Candidate Screen — updated 2026-07-07
 
 Inspected: 0 · READY: 0 · HOLD: 0
 

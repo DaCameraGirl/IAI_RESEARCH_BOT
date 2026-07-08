@@ -4,112 +4,79 @@
 from __future__ import annotations
 
 STUDY_KEYWORDS: dict[str, list[str]] = {
-    "25867": [
-        "memory transaction", "programmed i/o", "remote memory", "memory mapped",
-        "host bus", "network interface", "priority queue", "packet priority",
-        "posted write", "non-posted", "sequence number", "acknowledgement",
-        "retransmit", "lossy", "packet drop", "congestion", "ethernet",
-        "ordering", "rdma", "remote dma",
+    "26052": [
+        "blade", "blender", "rotor", "offset", "longitudinal axis", "container",
+        "eccentric", "off-center", "off center", "tornado", "vortex", "mixing",
+        "chopping", "food processor", "rechargeable", "blending",
     ],
-    "25854": [
-        "pulsed laser", "wafer", "fissure", "crack", "divide", "sapphire",
-        "gan", "semiconductor", "stealth dicing", "laser dicing", "substrate",
-        "modified region", "processed portion",
+    "25974": [
+        "oximidol", "tyrosinase inhibitor", "thiamidol", "isopropyl lauroyl sarcosinate",
+        "melanin", "skin whitening", "skin brightening", "hydroquinone", "kojic acid",
+        "niacinamide", "arbutin", "resorcinol", "thiazolyl", "alkylamidothiazole",
+        "beiersdorf", "sarcosinate",
     ],
-    "25853": ["resin", "package", "light emitting", "led", "encapsulant"],
 }
 
 STUDY_REQUIREMENTS: dict[str, list[dict[str, str]]] = {
-    "25867": [
-        {"id": "1.1", "name": "Receive MTMs from local memory controller", "keywords": ["memory transaction", "memory controller", "processor bus", "host bus"]},
-        {"id": "1.2", "name": "Determine MTMs destined for remote node", "keywords": ["remote", "remote node", "destined", "destination"]},
-        {"id": "1.3", "name": "Determine transaction type for each MTM", "keywords": ["transaction type", "posted", "non-posted", "request", "response"]},
-        {"id": "1.4", "name": "Compose network packet encapsulating MTM", "keywords": ["encapsulat", "packet", "network packet", "frame"]},
-        {"id": "1.5", "name": "Assign sending priority per packet", "keywords": ["priority", "packet priority", "sending priority", "qos"]},
-        {"id": "1.6", "name": "Organize packets into priority groups", "keywords": ["queue", "priority queue", "group", "organize"]},
-        {"id": "1.7", "name": "Send into lossy network by priority order", "keywords": ["lossy", "packet drop", "congestion", "drop", "network"]},
-        {"id": "1.8", "name": "Ensure per-priority proper sequence at remote", "keywords": ["sequence", "ordering", "order", "sequenc"]},
-        {"id": "1.9", "name": "Posted/response/non-posted priority mapping", "keywords": ["posted write", "non-posted", "response", "priority"]},
-        {"id": "1.10", "name": "First/second/third priority queues FIFO", "keywords": ["fifo", "first queue", "second queue", "third queue", "priority queue"]},
-        {"id": "1.11", "name": "Resend packet + subsequent on missing ACK", "keywords": ["retransmit", "resend", "ack", "timeout", "nack"]},
-        {"id": "1.12", "name": "ACK + sequence match or drop", "keywords": ["acknowledgement", "ack", "sequence number", "expected sequence"]},
-        {"id": "1.13", "name": "Lossy network is Ethernet", "keywords": ["ethernet", "lan", "ieee 802"]},
+    "26052": [
+        {"id": "1.1", "name": "Blades rotate around rotational axis, blend contents", "keywords": ["blade", "rotor", "rotational axis", "blend", "container"]},
+        {"id": "1.2", "name": "Blade rotational axis offset from container's longitudinal axis", "keywords": ["offset", "longitudinal axis", "container", "off-center", "off center", "eccentric"]},
+        {"id": "1.3", "name": "Offset is 5%-15% of blade diameter", "keywords": ["offset", "diameter", "percent", "5%", "15%", "eccentric"]},
     ],
-    "25854": [
-        {"id": "1.1", "name": "Laser inside substrate", "keywords": ["laser", "inside", "substrate", "internal"]},
-        {"id": "1.2", "name": "Fissure linking adjacent processed portions", "keywords": ["fissure", "adjacent", "processed portion", "link", "crack"]},
-        {"id": "1.3", "name": "Wafer dividing along line", "keywords": ["divide", "dividing", "wafer", "split"]},
-    ],
-    "25853": [
-        {"id": "1.1", "name": "Resin package structure", "keywords": ["resin", "package", "encapsul"]},
-        {"id": "1.2", "name": "Light emitting device", "keywords": ["led", "light emitting", "semiconductor light"]},
+    "25974": [
+        {"id": "1", "name": "Oximidol (exact structure)", "keywords": ["oximidol", "methyloxetanecarbamido", "thiazolyl resorcinol", "3081328-14-2", "kt-939", "kwhite 939", "nexawhite 939"]},
+        {"id": "2", "name": "Cosmetic/dermatological formulation with Oximidol or structurally similar", "keywords": ["cosmetic", "dermatological", "formulation", "tyrosinase inhibitor", "skin whitening", "skin brightening"]},
+        {"id": "3", "name": "Oximidol (or alkylamidothiazole) with Isopropyl Lauroyl Sarcosinate", "keywords": ["isopropyl lauroyl sarcosinate", "sarcosinate", "solvent", "thiamidol", "alkylamidothiazole"]},
     ],
 }
 
 PRIORITY_REQ_IDS: dict[str, tuple[str, ...]] = {
-    "25867": ("1.7", "1.8", "1.13"),
-    "25854": ("1.1", "1.2", "1.3"),
-    "25853": ("1.1", "1.2"),
+    "26052": ("1.1", "1.2", "1.3"),
+    "25974": ("1", "2", "3"),
 }
 
 SYNONYM_QUERIES: dict[str, list[str]] = {
-    "25867": [
-        "ethernet priority queue packet drop congestion",
-        "remote memory transaction programmed I/O network",
-        "packet retransmit acknowledgement sequence number ethernet",
-        "lossy network priority ordering retransmission",
-        "posted write non-posted request priority queue",
-        "memory mapped remote node network interface",
-        "ethernet switch drop QoS queue",
-        "go-back-N retransmit packet network",
-        "RDMA ethernet congestion drop",
-        "remote DMA memory transaction ethernet",
-        "host bus network packet priority",
-        "ACK NACK sequence number network packet",
-        "memory transaction MTM ethernet bridge",
-        "programmed I/O bus adapter network packet",
-        "non-posted write priority FIFO queue ethernet",
-        "IEEE 802.3 congestion drop retransmit",
-        "protocol processing engine DMA ethernet",
-        "remote memory access network adapter priority",
-        "packet coalescing interconnect memory",
-        "channel adapter segregate transmit priority",
+    "26052": [
+        "blender offset blade vortex mixing",
+        "eccentric blade rotor blending container",
+        "off-center rotor food processor design",
+        "blade rotational axis offset container longitudinal axis",
+        "tornado effect blending blade offset",
+        "rechargeable blender chopper offset blade diameter",
     ],
-    "25854": [
-        "laser fissure wafer divide sapphire",
-        "stealth dicing internal modification substrate",
-        "pulsed laser crack adjacent processed portion",
-    ],
-    "25853": [
-        "LED resin package encapsulant light emitting",
+    "25974": [
+        "oximidol tyrosinase inhibitor skin whitening",
+        "thiamidol isopropyl lauroyl sarcosinate solvent",
+        "alkylamidothiazole resorcinol skin brightening formulation",
+        "KT-939 KWhite 939 NexaWhite 939 cosmetic",
+        "thiazolyl resorcinol melanin inhibitor",
+        "Beiersdorf thiamidol product literature solvent",
     ],
 }
 
 CPC_QUERIES: dict[str, list[str]] = {
-    "25867": [
-        "H04L12/56 priority queue ethernet",
-        "H04L47/10 congestion drop packet",
-        "G06F13/28 remote memory bus",
-        "H04L69/16 TCP retransmit sequence",
+    "26052": [
+        "A47J43/046 blender blade arrangement",
+        "A47J43/07 rotating blade mixer",
+        "A47J43/044 blade offset container",
     ],
-    "25854": [],
-    "25853": [],
+    "25974": [
+        "A61K8/44 cosmetic compositions nitrogen organic compounds",
+        "A61Q19/02 skin whitening preparations",
+        "A61K31/425 thiazole compounds",
+    ],
 }
 
 NPL_QUERIES: dict[str, list[str]] = {
-    "25867": [
-        "ethernet congestion control priority queue",
-        "remote memory access network protocol",
-        "packet retransmission sequence number",
-        "RDMA over ethernet lossy",
-        "memory channel remote DMA",
-        "SCI interconnect remote memory",
-        "TCP selective repeat ethernet",
+    "26052": [
+        "blender offset blade vortex mixing product literature",
+        "food processor eccentric rotor design manual",
     ],
-    "25854": [
-        "laser stealth dicing sapphire wafer",
+    "25974": [
+        "thiamidol isopropyl lauroyl sarcosinate solubility dissertation",
+        "tyrosinase inhibitor thiazolyl resorcinol conference abstract",
+        "Beiersdorf thiamidol product literature solvent",
     ],
-    "25853": [],
 }
 
 

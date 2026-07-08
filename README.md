@@ -65,29 +65,29 @@ Or run: `.\RUN_BOT.ps1`
    - Asking for a hunt ("find PN511 mentions on Wayback from 2003")
    - Pasting a new study brief ("here's the 25696 brief, ingest it")
 
-## Active studies (as of 2026-06-22)
+## Active studies (as of 2026-07-07)
 
-- **25867 — Remote Memory Transactions** (prior art search). Study patent
-  US7702742B2. Critical date 2005-01-18. Focus: lossy **Ethernet** congestion
-  drops, priority queues, per-priority sequencing/ACK/retransmit (RR 1.7, 1.8,
-  1.13). Desktop folder: `25867 Remote Memory` (purple).
-- **25854 — Semiconductor Wafer Dividing** (prior art search). Study patent
-  US8728916B2. Critical date preferred 2009-02-25. Current RWS focus: RR 1.2
-  (fissure linking adjacent laser-formed processed portions). Desktop folder:
-  `25854 Wafer Dividing` (blue).
-- **25853 — Light Emitting Device Resin Package** (prior art search). Study
-  patent US8530250B2. RWS portal brief not yet pasted. Desktop folder:
-  `25853 LED Resin` (green).
-- **25657 — Integrated Circuit Chips** ($5,000 invalidity study,
-  deadline 2026-05-27). Target patent US7373531B2 (RFCyber Corp). Hunt
-  Philips/NXP NFC chips PN511/PN512/PN531 dated ≤ Jan 10, 2005. Full
-  brief baked into `system_prompt.md`.
-- **25696 — Battery Module** (CrowdSearch Plus, deadline 2026-05-26).
-  Brief not yet pasted into `system_prompt.md` — the agent will refuse
-  to generate 25696 submissions until it is.
+- **26052 — Rechargeable Blender With Offset Blades** (invalidity, $7,000,
+  deadline 2026-08-04). Study patent US11229891. Critical date 2019-10-28.
+  Focus: RR1.1-1.3 — blade rotational axis offset 5-15% of blade diameter
+  from the container's longitudinal axis. Folder:
+  `26052_Rechargeable_Blender_Offset_Blades/`.
+- **25974 — Oximidol (Tyrosinase Inhibitor)** (invalidity, deadline
+  2026-07-15). Study patent WO2025201324. Critical date 2024-03-26. Focus:
+  RR1/RR2 exact Oximidol molecule; RR3 Oximidol (or broader
+  alkylamidothiazoles per 2026-06-24 lead) combined with Isopropyl Lauroyl
+  Sarcosinate, priority before 2023-08-18. Folder: `25974_Oximidol/`.
+- **26005 / 26006 / 26016 — Hymn Research (Cebuano / Russian / Italian)**
+  (copyright research, deadline 2026-07-28 / 2026-07-30 / 2026-07-30).
+  Find existing (not machine-translated) hymn translations per
+  `HymnResearch_English.zip`. Folders: `26005_Hymn_Research_Cebuano/`,
+  `26006_Hymn_Research_Russian/`, `26016_Hymn_Research_Italian/`.
 
 ## Closed / historical studies
 
+- 25867 Remote Memory Transactions, 25854 Semiconductor Wafer Dividing,
+  25853 Light Emitting Device Resin Package, 25657 Integrated Circuit Chips,
+  25696 Battery Module, 25803 Hymn Research - Malagasy.
 - 25671 Inhalers (Final Review), 25576 Smoking System (Final Review),
   25429 Wireless Devices (Completed). Submission windows over.
 

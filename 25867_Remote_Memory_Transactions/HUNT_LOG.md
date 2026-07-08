@@ -4,6 +4,7 @@ Bot updates this after each hunt round. Angela can ignore unless auditing covera
 
 | Date | Lanes completed | Docs inspected | Candidates surfaced | Next lane |
 |------|-----------------|----------------|---------------------|-----------|
+| 2026-07-03 | L1, L2, L2b, L3 | 300 | 0 | continue |
 | 2026-06-22 | L1, L2, L3, L4 | 150 | 6 | continue |
 | 2026-06-22 | L1, L2, L3, L4 | 60 | 3 | continue |
 | 2026-06-22 | L1, L2, L3, L4 | 60 | 3 | continue |
