@@ -1,0 +1,36 @@
+{
+  "title": "Rechargeable Blender With Offset Blades",
+  "type": "patent",
+  "patent": "US11229891",
+  "critical_date": "2019-10-28",
+  "focus": "RR 1.1-1.3: blade rotational axis offset 5-15% of blade diameter from container's longitudinal axis",
+  "keywords": [
+    "blade", "blender", "rotor", "offset", "longitudinal axis", "container",
+    "eccentric", "off-center", "off center", "tornado", "vortex", "mixing",
+    "chopping", "food processor", "rechargeable", "blending"
+  ],
+  "requirements": [
+    {"id": "1.1", "name": "Blades rotate around rotational axis, blend contents", "keywords": ["blade", "rotor", "rotational axis", "blend", "container"]},
+    {"id": "1.2", "name": "Blade rotational axis offset from container's longitudinal axis", "keywords": ["offset", "longitudinal axis", "container", "off-center", "off center", "eccentric"]},
+    {"id": "1.3", "name": "Offset is 5%-15% of blade diameter", "keywords": ["offset", "diameter", "percent", "5%", "15%", "eccentric"]}
+  ],
+  "priority_req_ids": ["1.1", "1.2", "1.3"],
+  "synonym_queries": [
+    "blender offset blade vortex mixing",
+    "eccentric blade rotor blending container",
+    "off-center rotor food processor design",
+    "blade rotational axis offset container longitudinal axis",
+    "tornado effect blending blade offset",
+    "rechargeable blender chopper offset blade diameter"
+  ],
+  "cpc_queries": [
+    "A47J43/046 blender blade arrangement",
+    "A47J43/07 rotating blade mixer",
+    "A47J43/044 blade offset container"
+  ],
+  "npl_queries": [
+    "blender offset blade vortex mixing product literature",
+    "food processor eccentric rotor design manual"
+  ],
+  "assignees": []
+}

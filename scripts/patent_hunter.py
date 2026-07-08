@@ -23,15 +23,7 @@ from check_burned import is_burned, load_burned, load_citation_seeds, patent_key
 from link_builder import crossref_lookup, patent_links  # noqa: E402
 from patent_search import search_queries  # noqa: E402
 from study_bot import STUDY_META  # noqa: E402
-from study_requirements import (  # noqa: E402
-    CPC_QUERIES,
-    NPL_QUERIES,
-    PRIORITY_REQ_IDS,
-    STUDY_KEYWORDS,
-    SYNONYM_QUERIES,
-    ctrl_f_phrases,
-    map_requirements,
-)
+from study_requirements import ctrl_f_phrases, map_requirements  # noqa: E402
 
 LogFn = Callable[[str, str], None]  # message, level
 
@@ -47,10 +39,6 @@ L3_PER_QUERY = 30
 L4_PER_QUERY = 20
 L6_SEED_LIMIT = 50
 L6_CITES_PER = 15
-
-STUDY_ASSIGNEES: dict[str, list[str]] = {
-    "25974": ["Beiersdorf"],
-}
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
@@ -186,7 +174,7 @@ def _parse_critical_date(study_id: str) -> str | None:
 
 
 def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
-    keywords = STUDY_KEYWORDS.get(study_id, [])
+    keywords = STUDY_META[study_id]["keywords"]
     text = f"{rec.title} {rec.abstract}"
     text_l = text.lower()
     matched = [k for k in keywords if k.lower() in text_l]
@@ -196,7 +184,7 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
     maybe_count = sum(1 for r in rec.req_rows if r["select"] == "maybe")
     rec.score = yes_count * 3 + maybe_count
 
-    priority_ids = PRIORITY_REQ_IDS.get(study_id, ())
+    priority_ids = STUDY_META[study_id]["priority_req_ids"]
     priority_yes = sum(
         1 for r in rec.req_rows if r["id"] in priority_ids and r["select"] == "yes"
     )
@@ -402,6 +390,16 @@ class HuntEngine:
     def run_deep(self) -> dict:
         meta = STUDY_META[self.study_id]
         folder = REPO / meta["folder"]
+
+        if meta.get("type") == "copyright" or not meta.get("patent"):
+            self.log(
+                f"{self.study_id} is a copyright-research study (no study patent) — "
+                "the patent citation-graph hunt doesn't apply here. Work this study "
+                "manually per its STUDY_BRIEF.md.",
+                "warn",
+            )
+            return {"ready": 0, "inspected": 0, "note": "copyright-research study — no patent hunt to run"}
+
         critical = _parse_critical_date(self.study_id)
         critical_compact = critical.replace("-", "") if critical else None
         burned = load_burned(self.study_id)
@@ -459,7 +457,7 @@ class HuntEngine:
 
         # L3 — assignee pre-date search
         self.log("L3: Assignee sweep (Google Patents search)", "lane")
-        for asn in STUDY_ASSIGNEES.get(self.study_id, []):
+        for asn in STUDY_META[self.study_id]["assignees"]:
             q = f'assignee:"{asn}"'
             hits = search_queries([q], before_priority=critical_compact, per_query=L3_PER_QUERY, pause=0.55)
             self.log(f"  {asn}: {len(hits)} pre-date hits", "info")
@@ -469,7 +467,7 @@ class HuntEngine:
 
         # L4 — synonym lattice (12 queries)
         self.log("L4: Synonym lattice searches", "lane")
-        queries = SYNONYM_QUERIES.get(self.study_id, [])
+        queries = STUDY_META[self.study_id]["synonym_queries"]
         syn_hits = search_queries(queries, before_priority=critical_compact, per_query=L4_PER_QUERY, pause=0.4)
         self.log(f"  Synonym lattice: {len(syn_hits)} unique hits", "info")
         for pub, q in syn_hits:
@@ -477,7 +475,7 @@ class HuntEngine:
         self.lanes_done.append("L4")
 
         # L4b — CPC / classification targeted searches
-        cpc_queries = CPC_QUERIES.get(self.study_id, [])
+        cpc_queries = STUDY_META[self.study_id]["cpc_queries"]
         if cpc_queries:
             self.log("L4b: CPC / classification searches", "lane")
             cpc_hits = search_queries(cpc_queries, before_priority=critical_compact, per_query=15, pause=0.45)
@@ -625,7 +623,7 @@ class HuntEngine:
         return skipped
 
     def _hunt_npl(self, folder: Path, critical: str | None, burned: dict[str, str]) -> int:
-        queries = NPL_QUERIES.get(self.study_id, [])
+        queries = STUDY_META[self.study_id]["npl_queries"]
         if not queries:
             return 0
         year = critical[:4] if critical else None
