@@ -592,7 +592,9 @@ function renderState(data) {
 
   $('studyId').textContent = `Study ${selectedStudy} · ${meta.status.toUpperCase()}`;
   $('studyTitle').textContent = meta.title;
-  $('studyMeta').innerHTML = `Patent <strong>${meta.patent}</strong><br>Critical date ${meta.critical_date}<br>${meta.burned} burned · folder ${meta.folder}`;
+  const patentTxt = meta.patent || 'N/A (copyright research)';
+  const criticalTxt = meta.critical_date || 'N/A';
+  $('studyMeta').innerHTML = `Patent <strong>${patentTxt}</strong><br>Critical date ${criticalTxt}<br>${meta.burned} burned · folder ${meta.folder}`;
   $('studyFocus').textContent = meta.focus;
 
   $('stats').innerHTML = `
@@ -628,6 +630,9 @@ function renderState(data) {
   if (meta.blocked) {
     huntBtn.disabled = true;
     huntBtn.textContent = '⚠ Study blocked — paste brief';
+  } else if (!meta.patent) {
+    huntBtn.disabled = true;
+    huntBtn.textContent = 'No auto-hunt — manual research study';
   } else if (!hunting) {
     huntBtn.disabled = false;
     huntBtn.textContent = '⚡ Run Deep Hunt';
