@@ -4,6 +4,8 @@
   "patent": null,
   "critical_date": null,
   "focus": "Find existing Italian hymn translations per HymnResearch_English.zip list",
+  "language": "Italian",
+  "language_code": "it",
   "keywords": [],
   "requirements": [],
   "priority_req_ids": [],

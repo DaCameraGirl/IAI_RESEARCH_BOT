@@ -39,6 +39,8 @@ _META_DEFAULTS = {
     "critical_date": "N/A",
     "focus": "",
     "type": "patent",
+    "language": None,
+    "language_code": None,
     "keywords": [],
     "requirements": [],
     "priority_req_ids": [],

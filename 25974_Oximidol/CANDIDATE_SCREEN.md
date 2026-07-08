@@ -1,6 +1,6 @@
-# Candidate Screen — updated 2026-07-07
+# Candidate Screen — updated 2026-07-08 00:48
 
-Inspected: 0 · READY: 0 · HOLD: 0
+Inspected: 154 · READY: 0 · HOLD: 0
 
 ## READY (Self-rank ≥2, high/med)
 

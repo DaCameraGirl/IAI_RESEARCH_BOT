@@ -24,6 +24,7 @@ sys.path.insert(0, str(REPO / "scripts"))
 
 from add_study import AddStudyError, add_study  # noqa: E402
 from check_burned import is_burned, load_burned, patent_key  # noqa: E402
+from hymn_hunter import HymnHuntEngine  # noqa: E402
 from patent_hunter import HuntEngine, regrade_stored_candidates  # noqa: E402
 from study_bot import (  # noqa: E402
     STUDY_META,
@@ -196,6 +197,20 @@ def _start_hunt(study_id: str) -> dict:
 
     def run() -> None:
         global _hunt_result
+        meta = STUDY_META[study_id]
+        if meta.get("type") == "copyright":
+            engine = HymnHuntEngine(study_id, on_log=on_log)
+            globals()["_hunt_engine"] = engine
+            try:
+                _hunt_result = engine.run()
+                state = load_state()
+                if study_id in state["studies"]:
+                    state["studies"][study_id]["candidates_found"] = _hunt_result.get("leads_found", 0)
+                save_state(state)
+            except Exception as exc:
+                on_log(f"Hunt error: {exc}", "error")
+            return
+
         engine = HuntEngine(study_id, on_log=on_log)
         globals()["_hunt_engine"] = engine
         try:
@@ -630,12 +645,9 @@ function renderState(data) {
   if (meta.blocked) {
     huntBtn.disabled = true;
     huntBtn.textContent = '⚠ Study blocked — paste brief';
-  } else if (!meta.patent) {
-    huntBtn.disabled = true;
-    huntBtn.textContent = 'No auto-hunt — manual research study';
   } else if (!hunting) {
     huntBtn.disabled = false;
-    huntBtn.textContent = '⚡ Run Deep Hunt';
+    huntBtn.textContent = meta.patent ? '⚡ Run Deep Hunt' : '⚡ Search Hymn Translations';
     huntBtn.classList.remove('running');
   }
 }
@@ -723,7 +735,6 @@ function pollLogs() {
       hunting = false;
       $('genieAvatar').classList.remove('hunting');
       $('huntBtn').classList.remove('running');
-      $('huntBtn').textContent = '⚡ Run Deep Hunt';
       $('stopBtn').style.display = 'none';
       clearInterval(pollTimer);
       loadState();
