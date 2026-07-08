@@ -144,6 +144,16 @@ class TestHymnHuntEngine(unittest.TestCase):
         log = (folder / "HUNT_LOG.md").read_text(encoding="utf-8")
         self.assertIn("2/2", log)
 
+        cand_files = list((folder / "candidates").glob("*_hymn_lead.txt"))
+        self.assertEqual(len(cand_files), 3)  # 1 hymnal source + 2 per-hymn leads
+        hymnal_file = next(f for f in cand_files if f.name.startswith("HYMNAL_SOURCE"))
+        text = hymnal_file.read_text(encoding="utf-8")
+        self.assertIn("Russian Hymnal Collection", text)
+        self.assertIn("UNVERIFIED", text)
+        lead_file = next(f for f in cand_files if not f.name.startswith("HYMNAL_SOURCE"))
+        lead_text = lead_file.read_text(encoding="utf-8")
+        self.assertIn("Hymn:", lead_text)
+
     def test_missing_hymn_list_logs_warning_no_crash(self) -> None:
         (self.tmp_path / "26006_Test" / "HYMN_LIST.txt").unlink()
         logs = []

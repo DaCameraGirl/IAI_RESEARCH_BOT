@@ -89,6 +89,31 @@ def _purge_burned_candidates(study_id: str, burned: dict[str, str] | None = None
     return removed
 
 
+def _parse_hymn_lead(path: Path, text: str) -> dict:
+    import re
+
+    def field(name: str) -> str:
+        m = re.search(rf"^{name}:\s*(.+)$", text, re.I | re.M)
+        return m.group(1).strip() if m else ""
+
+    hymn = field("Hymn")
+    title = field("Title")
+    return {
+        "file": path.name,
+        "publication": hymn or title or path.stem,
+        "title": f"{hymn} — {title}" if hymn else title,
+        "url": field("URL"),
+        "pdf_url": "",
+        "doi": "not found",
+        "rank": 0,
+        "confidence": "low",
+        "ready": False,
+        "burned": False,
+        "burn_relation": "",
+        "text": text,
+    }
+
+
 def _parse_candidates(study_id: str, burned: dict[str, str] | None = None) -> list[dict]:
     import re
 
@@ -98,6 +123,8 @@ def _parse_candidates(study_id: str, burned: dict[str, str] | None = None) -> li
     if not folder.exists():
         return []
     out = []
+    for path in sorted(folder.glob("*_hymn_lead.txt")):
+        out.append(_parse_hymn_lead(path, path.read_text(encoding="utf-8", errors="replace")))
     for path in sorted(folder.glob("*_RWS_format.txt")):
         text = path.read_text(encoding="utf-8", errors="replace")
         rank_m = re.search(r"Self-rank:\s*(\d)\s*/\s*3", text, re.I)
