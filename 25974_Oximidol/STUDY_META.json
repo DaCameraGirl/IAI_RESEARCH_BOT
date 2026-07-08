@@ -1,0 +1,38 @@
+{
+  "title": "Oximidol (Tyrosinase Inhibitor)",
+  "type": "patent",
+  "patent": "WO2025201324",
+  "critical_date": "2024-03-26",
+  "focus": "RR1/RR2 exact Oximidol molecule; RR3 Oximidol (or broader alkylamidothiazoles) with Isopropyl Lauroyl Sarcosinate, priority < 2023-08-18",
+  "keywords": [
+    "oximidol", "tyrosinase inhibitor", "thiamidol", "isopropyl lauroyl sarcosinate",
+    "melanin", "skin whitening", "skin brightening", "hydroquinone", "kojic acid",
+    "niacinamide", "arbutin", "resorcinol", "thiazolyl", "alkylamidothiazole",
+    "beiersdorf", "sarcosinate"
+  ],
+  "requirements": [
+    {"id": "1", "name": "Oximidol (exact structure)", "keywords": ["oximidol", "methyloxetanecarbamido", "thiazolyl resorcinol", "3081328-14-2", "kt-939", "kwhite 939", "nexawhite 939"]},
+    {"id": "2", "name": "Cosmetic/dermatological formulation with Oximidol or structurally similar", "keywords": ["cosmetic", "dermatological", "formulation", "tyrosinase inhibitor", "skin whitening", "skin brightening"]},
+    {"id": "3", "name": "Oximidol (or alkylamidothiazole) with Isopropyl Lauroyl Sarcosinate", "keywords": ["isopropyl lauroyl sarcosinate", "sarcosinate", "solvent", "thiamidol", "alkylamidothiazole"]}
+  ],
+  "priority_req_ids": ["1", "2", "3"],
+  "synonym_queries": [
+    "oximidol tyrosinase inhibitor skin whitening",
+    "thiamidol isopropyl lauroyl sarcosinate solvent",
+    "alkylamidothiazole resorcinol skin brightening formulation",
+    "KT-939 KWhite 939 NexaWhite 939 cosmetic",
+    "thiazolyl resorcinol melanin inhibitor",
+    "Beiersdorf thiamidol product literature solvent"
+  ],
+  "cpc_queries": [
+    "A61K8/44 cosmetic compositions nitrogen organic compounds",
+    "A61Q19/02 skin whitening preparations",
+    "A61K31/425 thiazole compounds"
+  ],
+  "npl_queries": [
+    "thiamidol isopropyl lauroyl sarcosinate solubility dissertation",
+    "tyrosinase inhibitor thiazolyl resorcinol conference abstract",
+    "Beiersdorf thiamidol product literature solvent"
+  ],
+  "assignees": ["Beiersdorf"]
+}

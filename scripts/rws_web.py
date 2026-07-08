@@ -22,6 +22,7 @@ for _stream in (sys.stdout, sys.stderr):
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / "scripts"))
 
+from add_study import AddStudyError, add_study  # noqa: E402
 from check_burned import is_burned, load_burned, patent_key  # noqa: E402
 from patent_hunter import HuntEngine, regrade_stored_candidates  # noqa: E402
 from study_bot import (  # noqa: E402
@@ -43,8 +44,11 @@ _log_queue: queue.Queue[dict] = queue.Queue()
 _hunt_result: dict | None = None
 
 
-def _study_patent_key(study_id: str) -> str:
+def _study_patent_key(study_id: str) -> str | None:
+    """None for copyright-research studies — no study patent to dedupe against."""
     raw = STUDY_META[study_id]["patent"]
+    if not raw:
+        return None
     if not raw.upper().startswith(("US", "EP", "WO")):
         raw = "US" + raw
     return patent_key(raw)
@@ -422,6 +426,19 @@ header {
 .burn-result.clear { color: var(--green); }
 .burn-result.burned { color: var(--red); }
 
+.add-study-form { display: flex; flex-direction: column; gap: 8px; }
+.add-study-form input, .add-study-form textarea {
+  width: 100%; padding: 10px 12px; border-radius: 8px; box-sizing: border-box;
+  border: 1px solid rgba(255,255,255,0.1); background: rgba(0,0,0,0.3);
+  color: var(--cream); font-family: inherit; font-size: 0.85rem; resize: vertical;
+}
+.add-study-form input:focus, .add-study-form textarea:focus {
+  outline: none; border-color: rgba(212,168,83,0.5);
+}
+.add-study-form label { font-size: 0.76rem; color: var(--muted); margin-top: 4px; }
+#addStudyResult.ok { color: var(--green); }
+#addStudyResult.err { color: var(--red); }
+
 .side .card { margin-bottom: 18px; }
 .side h3 {
   font-family: 'Cormorant Garamond', serif;
@@ -513,6 +530,19 @@ footer {
       <div class="card">
         <h3>Queue</h3>
         <div id="queue"></div>
+      </div>
+      <div class="card">
+        <h3>Add Study</h3>
+        <div class="add-study-form">
+          <input id="newStudyId" placeholder="Study ID (e.g. 26100)"/>
+          <input id="newStudyTitle" placeholder="Title (optional — auto-detected if blank)"/>
+          <label>Known Citations (CSV) — leave blank for copyright/non-patent studies</label>
+          <textarea id="newStudyCsv" rows="3" placeholder="Citation/Document Number,Type,Relation&#10;&quot;US1234567&quot;,&quot;Patent&quot;,&quot;Study Patent&quot;"></textarea>
+          <label>Everything else — paste the raw RWS study page / brief</label>
+          <textarea id="newStudyBrief" rows="7" placeholder="Paste the whole study brief text here"></textarea>
+          <button class="btn btn-ghost" id="addStudyBtn" style="width:100%">Add Study</button>
+          <div id="addStudyResult"></div>
+        </div>
       </div>
       <div class="card">
         <h3>Sources</h3>
@@ -699,6 +729,42 @@ function pollLogs() {
 
 $('huntBtn').onclick = startHunt;
 $('stopBtn').onclick = async () => { await api('/api/hunt/stop', {method:'POST'}); };
+
+$('addStudyBtn').onclick = async () => {
+  const study_id = $('newStudyId').value.trim();
+  const title = $('newStudyTitle').value.trim();
+  const citations_csv = $('newStudyCsv').value;
+  const brief_text = $('newStudyBrief').value;
+  const result = $('addStudyResult');
+  result.className = '';
+  if (!study_id || !brief_text.trim()) {
+    result.className = 'err';
+    result.textContent = 'Study ID and the brief box are both required.';
+    return;
+  }
+  $('addStudyBtn').disabled = true;
+  $('addStudyBtn').textContent = 'Adding…';
+  const data = await api('/api/add-study', {
+    method: 'POST',
+    headers: {'Content-Type':'application/json'},
+    body: JSON.stringify({study_id, title, citations_csv, brief_text}),
+  });
+  $('addStudyBtn').disabled = false;
+  $('addStudyBtn').textContent = 'Add Study';
+  if (data.ok) {
+    result.className = 'ok';
+    result.textContent = `Added ${data.study_id} → ${data.folder} (${data.type})`
+      + (data.blocked ? ' — BLOCKED, needs review: ' + data.warnings.join('; ') : '');
+    $('newStudyId').value = '';
+    $('newStudyTitle').value = '';
+    $('newStudyCsv').value = '';
+    $('newStudyBrief').value = '';
+    loadState();
+  } else {
+    result.className = 'err';
+    result.textContent = data.error || 'Failed to add study.';
+  }
+};
 $('roundBtn').onclick = async () => { await api('/api/round-done', {method:'POST'}); loadState(); };
 $('advanceBtn').onclick = async () => { await api('/api/advance', {method:'POST'}); selectedStudy = null; loadState(); loadCandidates(); };
 
@@ -888,6 +954,22 @@ class RWSHandler(BaseHTTPRequestHandler):
                 state["studies"][sid]["candidates_found"] = ready
                 save_state(state)
             _json_response(self, {"ok": True, "removed": removed, "ready": ready})
+            return
+
+        if path == "/api/add-study":
+            study_id = (data.get("study_id") or "").strip()
+            brief_text = data.get("brief_text") or ""
+            citations_csv = data.get("citations_csv") or None
+            title = (data.get("title") or "").strip() or None
+            if not study_id or not brief_text.strip():
+                _json_response(self, {"ok": False, "error": "study_id and brief_text are required"}, 400)
+                return
+            try:
+                result = add_study(study_id, brief_text, citations_csv, title=title)
+            except AddStudyError as exc:
+                _json_response(self, {"ok": False, "error": str(exc)}, 400)
+                return
+            _json_response(self, {"ok": True, **result})
             return
 
         self.send_error(404)

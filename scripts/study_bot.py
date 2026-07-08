@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import sys
+from collections.abc import Mapping
 from pathlib import Path
 
 for _stream in (sys.stdout, sys.stderr):
@@ -25,48 +26,26 @@ for _stream in (sys.stdout, sys.stderr):
 REPO = Path(__file__).resolve().parents[1]
 STATE_PATH = REPO / "bot_state.json"
 
+# Written into STUDY_BRIEF.md by add_study.py when it couldn't confidently
+# extract a patent number / critical date — marks the study BLOCKED until
+# someone reviews and fills in the brief.
+BLOCKED_SENTINEL = "NEEDS_BRIEF_REVIEW"
 
-STUDY_META = {
-    "26052": {
-        "folder": "26052_Rechargeable_Blender_Offset_Blades",
-        "title": "Rechargeable Blender With Offset Blades",
-        "patent": "US11229891",
-        "critical_date": "2019-10-28",
-        "focus": "RR 1.1-1.3: blade rotational axis offset 5-15% of blade diameter from container's longitudinal axis",
-        "blocked_check": lambda: False,
-    },
-    "25974": {
-        "folder": "25974_Oximidol",
-        "title": "Oximidol (Tyrosinase Inhibitor)",
-        "patent": "WO2025201324",
-        "critical_date": "2024-03-26",
-        "focus": "RR1/RR2 exact Oximidol molecule; RR3 Oximidol (or broader alkylamidothiazoles) with Isopropyl Lauroyl Sarcosinate, priority < 2023-08-18",
-        "blocked_check": lambda: False,
-    },
-    "26005": {
-        "folder": "26005_Hymn_Research_Cebuano",
-        "title": "Hymn Research - Cebuano",
-        "patent": "N/A (copyright research)",
-        "critical_date": "N/A",
-        "focus": "Find existing Cebuano hymn translations per HymnResearch_English.zip list",
-        "blocked_check": lambda: False,
-    },
-    "26006": {
-        "folder": "26006_Hymn_Research_Russian",
-        "title": "Hymn Research - Russian",
-        "patent": "N/A (copyright research)",
-        "critical_date": "N/A",
-        "focus": "Find existing Russian hymn translations per HymnResearch_English.zip list",
-        "blocked_check": lambda: False,
-    },
-    "26016": {
-        "folder": "26016_Hymn_Research_Italian",
-        "title": "Hymn Research - Italian",
-        "patent": "N/A (copyright research)",
-        "critical_date": "N/A",
-        "focus": "Find existing Italian hymn translations per HymnResearch_English.zip list",
-        "blocked_check": lambda: False,
-    },
+STUDY_META_FILENAME = "STUDY_META.json"
+
+_META_DEFAULTS = {
+    "title": "",
+    "patent": "N/A (copyright research)",
+    "critical_date": "N/A",
+    "focus": "",
+    "type": "patent",
+    "keywords": [],
+    "requirements": [],
+    "priority_req_ids": [],
+    "synonym_queries": [],
+    "cpc_queries": [],
+    "npl_queries": [],
+    "assignees": [],
 }
 
 
@@ -82,8 +61,63 @@ def current_id(state: dict) -> str:
     return state["current_study"]
 
 
+def study_folder(study_id: str, state: dict | None = None) -> Path:
+    state = state or load_state()
+    folder_name = state["studies"][study_id]["folder"]
+    return REPO / folder_name
+
+
+def _build_study_meta(study_id: str) -> dict:
+    state = load_state()
+    if study_id not in state.get("studies", {}):
+        raise KeyError(study_id)
+    folder_name = state["studies"][study_id]["folder"]
+    folder = REPO / folder_name
+    meta_path = folder / STUDY_META_FILENAME
+    data = json.loads(meta_path.read_text(encoding="utf-8")) if meta_path.exists() else {}
+
+    meta = dict(_META_DEFAULTS)
+    meta.update(data)
+    meta["folder"] = folder_name
+    meta["priority_req_ids"] = tuple(meta["priority_req_ids"])
+    if not meta["title"]:
+        meta["title"] = study_id
+    return meta
+
+
+class _StudyMetaRegistry(Mapping):
+    """Lazily builds per-study metadata from <folder>/STUDY_META.json.
+
+    Behaves like the plain dict this used to be (indexing, .get(), iteration)
+    so every existing call site (STUDY_META[sid], STUDY_META.get(sid, ...),
+    STUDY_META.items()) keeps working without changes.
+    """
+
+    def __getitem__(self, study_id: str) -> dict:
+        try:
+            return _build_study_meta(study_id)
+        except KeyError:
+            raise KeyError(study_id) from None
+
+    def __iter__(self):
+        return iter(load_state().get("studies", {}))
+
+    def __len__(self) -> int:
+        return len(load_state().get("studies", {}))
+
+
+STUDY_META = _StudyMetaRegistry()
+
+
 def is_blocked(study_id: str) -> bool:
-    return STUDY_META[study_id]["blocked_check"]()
+    state = load_state()
+    if study_id not in state.get("studies", {}):
+        return True
+    folder = study_folder(study_id, state)
+    brief = folder / "STUDY_BRIEF.md"
+    if not brief.exists():
+        return True
+    return BLOCKED_SENTINEL in brief.read_text(encoding="utf-8")
 
 
 def agent_orders(study_id: str) -> str:

@@ -10,6 +10,7 @@
   ],
   "studies": {
     "26052": {
+      "folder": "26052_Rechargeable_Blender_Offset_Blades",
       "status": "active",
       "rounds_completed": 0,
       "candidates_found": 0,
@@ -17,6 +18,7 @@
       "lanes_complete": []
     },
     "25974": {
+      "folder": "25974_Oximidol",
       "status": "queued",
       "rounds_completed": 0,
       "candidates_found": 0,
@@ -24,6 +26,7 @@
       "lanes_complete": []
     },
     "26005": {
+      "folder": "26005_Hymn_Research_Cebuano",
       "status": "queued",
       "rounds_completed": 0,
       "candidates_found": 0,
@@ -31,6 +34,7 @@
       "lanes_complete": []
     },
     "26006": {
+      "folder": "26006_Hymn_Research_Russian",
       "status": "queued",
       "rounds_completed": 0,
       "candidates_found": 0,
@@ -38,6 +42,7 @@
       "lanes_complete": []
     },
     "26016": {
+      "folder": "26016_Hymn_Research_Italian",
       "status": "queued",
       "rounds_completed": 0,
       "candidates_found": 0,
