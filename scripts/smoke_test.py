@@ -109,7 +109,7 @@ def test_unittest_suite() -> None:
     if code != 0:
         fail("unittest discover", out)
     else:
-        ok("unittest discover (21 tests)")
+        ok("unittest discover (33 tests)")
 
 
 def main() -> int:
