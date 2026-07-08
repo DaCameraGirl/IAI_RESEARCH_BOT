@@ -46,18 +46,18 @@ def test_scripts_compile() -> None:
 
 def test_bot_state() -> None:
     state = json.loads((REPO / "bot_state.json").read_text(encoding="utf-8"))
-    if state.get("current_study") != "25867":
-        fail("bot_state current_study", f"expected 25867, got {state.get('current_study')}")
+    if state.get("current_study") != "26052":
+        fail("bot_state current_study", f"expected 26052, got {state.get('current_study')}")
     else:
-        ok("bot_state current_study=25867")
+        ok("bot_state current_study=26052")
 
 
 def test_check_burned() -> None:
     cases = [
-        (["25867", "US5613071"], "BURNED"),
-        (["25867", "US6718392"], "CLEAR"),
-        (["25867", "US7702742"], "BURNED"),
-        (["25854", "US8728916"], "BURNED"),
+        (["26052", "US10792630"], "BURNED"),
+        (["26052", "US9999999"], "CLEAR"),
+        (["26052", "US11229891"], "BURNED"),
+        (["25974", "WO2025201324"], "BURNED"),
     ]
     for args, want in cases:
         code, out = run([sys.executable, "scripts/check_burned.py", *args])
@@ -79,7 +79,7 @@ def test_check_burned_unknown_study() -> None:
 
 def test_study_bot_status() -> None:
     code, out = run([sys.executable, "scripts/study_bot.py", "status"])
-    if code != 0 or "25867" not in out:
+    if code != 0 or "26052" not in out:
         fail("study_bot status", out)
     else:
         ok("study_bot status")
@@ -109,7 +109,7 @@ def test_unittest_suite() -> None:
     if code != 0:
         fail("unittest discover", out)
     else:
-        ok("unittest discover (17 tests)")
+        ok("unittest discover (21 tests)")
 
 
 def main() -> int:

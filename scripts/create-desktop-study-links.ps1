@@ -2,9 +2,11 @@ $desktop = [Environment]::GetFolderPath('Desktop')
 $repo = 'C:\Users\enter\OneDrive\Desktop\RWS_RESEARCHER'
 
 $links = @(
-    @{ Name = '25854 Wafer Dividing'; Target = Join-Path $repo '25854_Semiconductor_Wafer_Dividing'; Color = 'blue' }
-    @{ Name = '25853 LED Resin'; Target = Join-Path $repo '25853_Light_Emitting_Device_Resin_Package'; Color = 'green' }
-    @{ Name = '25867 Remote Memory'; Target = Join-Path $repo '25867_Remote_Memory_Transactions'; Color = 'purple' }
+    @{ Name = '26052 Blender Offset Blades'; Target = Join-Path $repo '26052_Rechargeable_Blender_Offset_Blades'; Color = 'purple' }
+    @{ Name = '25974 Oximidol'; Target = Join-Path $repo '25974_Oximidol'; Color = 'blue' }
+    @{ Name = '26005 Hymn Cebuano'; Target = Join-Path $repo '26005_Hymn_Research_Cebuano'; Color = 'green' }
+    @{ Name = '26006 Hymn Russian'; Target = Join-Path $repo '26006_Hymn_Research_Russian'; Color = 'orange' }
+    @{ Name = '26016 Hymn Italian'; Target = Join-Path $repo '26016_Hymn_Research_Italian'; Color = 'red' }
 )
 
 $colorScript = Join-Path $repo 'scripts\set-study-folder-color.ps1'

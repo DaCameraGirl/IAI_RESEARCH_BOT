@@ -49,9 +49,7 @@ L6_SEED_LIMIT = 50
 L6_CITES_PER = 15
 
 STUDY_ASSIGNEES: dict[str, list[str]] = {
-    "25867": ["Fortinet", "Woven Systems", "Woven Interop"],
-    "25854": ["Nichia"],
-    "25853": ["Nichia"],
+    "25974": ["Beiersdorf"],
 }
 
 USER_AGENT = (
@@ -187,18 +185,6 @@ def _parse_critical_date(study_id: str) -> str | None:
     return m.group(1) if m else None
 
 
-def _study_signals(study_id: str, text: str) -> dict[str, bool]:
-    text_l = text.lower()
-    if study_id == "25867":
-        return {
-            "ethernet": "ethernet" in text_l or "ieee 802" in text_l,
-            "queue": any(x in text_l for x in ("priority queue", "packet priority", "fifo", "ordering")),
-            "loss": any(x in text_l for x in ("retransmit", "packet drop", "congestion", "lossy", "ack")),
-            "mtm": any(x in text_l for x in ("memory transaction", "remote memory", "programmed i/o", "memory mapped")),
-        }
-    return {"ethernet": False, "queue": False, "loss": False, "mtm": False}
-
-
 def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
     keywords = STUDY_KEYWORDS.get(study_id, [])
     text = f"{rec.title} {rec.abstract}"
@@ -214,7 +200,6 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
     priority_yes = sum(
         1 for r in rec.req_rows if r["id"] in priority_ids and r["select"] == "yes"
     )
-    signals = _study_signals(study_id, text)
 
     if yes_count >= 4:
         rec.self_rank = 3
@@ -225,19 +210,7 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
     else:
         rec.self_rank = 0
 
-    if study_id == "25867":
-        if (
-            yes_count >= 3
-            and priority_yes >= 1
-            and signals["ethernet"]
-            and (signals["queue"] or signals["loss"])
-        ):
-            rec.confidence = "high"
-        elif yes_count >= 2 and (signals["ethernet"] or signals["mtm"]) and (signals["queue"] or signals["loss"]):
-            rec.confidence = "med"
-        else:
-            rec.confidence = "low"
-    elif yes_count >= 3:
+    if yes_count >= 3:
         rec.confidence = "high"
     elif yes_count >= 1:
         rec.confidence = "med"
@@ -249,10 +222,7 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
         and rec.self_rank >= 2
         and yes_count >= 2
         and rec.confidence == "high"
-        and (
-            priority_yes >= 1
-            or (study_id == "25867" and signals["ethernet"] and signals["queue"] and signals["loss"])
-        )
+        and priority_yes >= 1
     )
     return rec
 
@@ -313,15 +283,9 @@ def draft_candidate(rec: PatentRecord, study_id: str) -> str:
     ) or "  - (none flagged — still verify each req in claims)"
 
     adversarial = (
-        f"Strongest decline risk: study needs lossy Ethernet congestion-drop + remote memory MTMs; "
-        f"this doc may be generic networking without explicit Ethernet drop or programmed I/O bus mapping. "
-        f"Only {len(yes_reqs)} reqs auto-yes from abstract."
+        f"Verify verbatim anchors in PDF before submit. "
+        f"{len(yes_reqs)} requirements auto-yes from abstract keywords."
     )
-    if study_id != "25867":
-        adversarial = (
-            f"Verify verbatim anchors in PDF before submit. "
-            f"{len(yes_reqs)} requirements auto-yes from abstract keywords."
-        )
 
     return f"""Dropdown: Patent
 Downloadable PDF: yes + {pdf_line}
@@ -805,16 +769,8 @@ Notes:
                     "|------|-----------------|----------------|---------------------|-----------|\n" + row,
                     1,
                 )
-            # tick lanes
-            for i, lane in enumerate(
-                [
-                    "L1 Study patent citation backward 2-hop",
-                    "L2 Study patent cited-by ≤ 2005-01-18",
-                    "L3 Assignee/inventor sweep (Fortinet, Woven Systems)",
-                    "L4 Synonym lattice (see system_prompt.md 25867 list)",
-                ],
-                1,
-            ):
+            # tick lanes — match by lane number only, so wording can differ per study
+            for i in range(1, 8):
                 if f"L{i}" in str(self.lanes_done):
-                    text = text.replace(f"- [ ] {lane}", f"- [x] {lane}", 1)
+                    text = re.sub(rf"(?m)^- \[ \] (L{i}\b.*)$", r"- [x] \1", text, count=1)
             log_path.write_text(text, encoding="utf-8")

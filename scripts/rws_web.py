@@ -287,9 +287,11 @@ header {
 }
 .pill:hover { border-color: rgba(212,168,83,0.35); color: var(--cream); }
 .pill.active { color: var(--ink); border-color: transparent; }
-.pill[data-id="25867"].active { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
-.pill[data-id="25854"].active { background: linear-gradient(135deg, #60a5fa, #2563eb); }
-.pill[data-id="25853"].active { background: linear-gradient(135deg, #34d399, #059669); }
+.pill[data-id="26052"].active { background: linear-gradient(135deg, #a78bfa, #7c3aed); }
+.pill[data-id="25974"].active { background: linear-gradient(135deg, #60a5fa, #2563eb); }
+.pill[data-id="26005"].active { background: linear-gradient(135deg, #34d399, #059669); }
+.pill[data-id="26006"].active { background: linear-gradient(135deg, #fbbf24, #b45309); }
+.pill[data-id="26016"].active { background: linear-gradient(135deg, #f472b6, #be185d); }
 
 .grid { display: grid; grid-template-columns: 1fr 380px; gap: 22px; }
 @media (max-width: 1100px) { .grid { grid-template-columns: 1fr; } }

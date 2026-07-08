@@ -25,9 +25,11 @@ from study_bot import (  # noqa: E402
 )
 
 STUDY_COLORS = {
-    "25867": ("#8B5CF6", "#6D28D9"),  # purple
-    "25854": ("#3B82F6", "#1D4ED8"),  # blue
-    "25853": ("#10B981", "#047857"),  # green
+    "26052": ("#8B5CF6", "#6D28D9"),  # purple
+    "25974": ("#3B82F6", "#1D4ED8"),  # blue
+    "26005": ("#10B981", "#047857"),  # green
+    "26006": ("#F59E0B", "#B45309"),  # amber
+    "26016": ("#EC4899", "#BE185D"),  # pink
 }
 
 STATUS_COLORS = {

@@ -6,7 +6,7 @@ Usage:
   python scripts/study_bot.py              # show current study + agent orders
   python scripts/study_bot.py status       # queue overview
   python scripts/study_bot.py advance      # finish current, move to next
-  python scripts/study_bot.py goto 25854     # jump to a study (resets it active)
+  python scripts/study_bot.py goto 25974     # jump to a study (resets it active)
   python scripts/study_bot.py round-done     # increment hunt round on current study
 """
 
@@ -16,40 +16,56 @@ import json
 import sys
 from pathlib import Path
 
+for _stream in (sys.stdout, sys.stderr):
+    try:
+        _stream.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
 REPO = Path(__file__).resolve().parents[1]
 STATE_PATH = REPO / "bot_state.json"
 
 
-def _is_25853_blocked() -> bool:
-    brief = REPO / "25853_Light_Emitting_Device_Resin_Package" / "STUDY_BRIEF.md"
-    text = brief.read_text(encoding="utf-8")
-    return "TBD — paste from RWS portal" in text or "brief incomplete" in text.lower()
-
-
 STUDY_META = {
-    "25867": {
-        "folder": "25867_Remote_Memory_Transactions",
-        "title": "Remote Memory Transactions (Lossy Ethernet)",
-        "patent": "US7702742B2",
-        "critical_date": "2005-01-18",
-        "focus": "RR 1.7, 1.8, 1.13 + priority queues, Ethernet congestion drops, ACK/retransmit",
-        "blocked_check": lambda: True,
+    "26052": {
+        "folder": "26052_Rechargeable_Blender_Offset_Blades",
+        "title": "Rechargeable Blender With Offset Blades",
+        "patent": "US11229891",
+        "critical_date": "2019-10-28",
+        "focus": "RR 1.1-1.3: blade rotational axis offset 5-15% of blade diameter from container's longitudinal axis",
+        "blocked_check": lambda: False,
     },
-    "25854": {
-        "folder": "25854_Semiconductor_Wafer_Dividing",
-        "title": "Semiconductor Wafer Dividing (Laser Fissure)",
-        "patent": "US8728916B2",
-        "critical_date": "2009-02-25 (preferred)",
-        "focus": "RR 1.2 fissure linking adjacent processed portions; then 1.1, 1.3",
-        "blocked_check": lambda: True,
+    "25974": {
+        "folder": "25974_Oximidol",
+        "title": "Oximidol (Tyrosinase Inhibitor)",
+        "patent": "WO2025201324",
+        "critical_date": "2024-03-26",
+        "focus": "RR1/RR2 exact Oximidol molecule; RR3 Oximidol (or broader alkylamidothiazoles) with Isopropyl Lauroyl Sarcosinate, priority < 2023-08-18",
+        "blocked_check": lambda: False,
     },
-    "25853": {
-        "folder": "25853_Light_Emitting_Device_Resin_Package",
-        "title": "Light Emitting Device Resin Package",
-        "patent": "US8530250B2",
-        "critical_date": "TBD",
-        "focus": "Blocked until RWS brief pasted into STUDY_BRIEF.md",
-        "blocked_check": _is_25853_blocked,
+    "26005": {
+        "folder": "26005_Hymn_Research_Cebuano",
+        "title": "Hymn Research - Cebuano",
+        "patent": "N/A (copyright research)",
+        "critical_date": "N/A",
+        "focus": "Find existing Cebuano hymn translations per HymnResearch_English.zip list",
+        "blocked_check": lambda: False,
+    },
+    "26006": {
+        "folder": "26006_Hymn_Research_Russian",
+        "title": "Hymn Research - Russian",
+        "patent": "N/A (copyright research)",
+        "critical_date": "N/A",
+        "focus": "Find existing Russian hymn translations per HymnResearch_English.zip list",
+        "blocked_check": lambda: False,
+    },
+    "26016": {
+        "folder": "26016_Hymn_Research_Italian",
+        "title": "Hymn Research - Italian",
+        "patent": "N/A (copyright research)",
+        "critical_date": "N/A",
+        "focus": "Find existing Italian hymn translations per HymnResearch_English.zip list",
+        "blocked_check": lambda: False,
     },
 }
 
@@ -67,14 +83,29 @@ def current_id(state: dict) -> str:
 
 
 def is_blocked(study_id: str) -> bool:
-    if study_id == "25853":
-        return _is_25853_blocked()
-    return False
+    return STUDY_META[study_id]["blocked_check"]()
 
 
 def agent_orders(study_id: str) -> str:
     meta = STUDY_META[study_id]
     folder = REPO / meta["folder"]
+    is_patent_study = (folder / "known_art").exists()
+
+    if is_patent_study:
+        steps = f"""1. Read: {folder / 'STUDY_BRIEF.md'}
+2. Read: {folder / 'known_art' / 'known_citations.csv'}
+3. Read: templates/RWS_SUBMISSION_PLAYBOOK.md + templates/examples/INDEX.md
+4. Run ZERO_MISS_PROTOCOL.md — all 7 lanes
+5. Log: {folder / 'HUNT_LOG.md'} and {folder / 'CANDIDATE_SCREEN.md'}
+6. Write READY candidates to {folder / 'candidates'}/*_RWS_format.txt
+7. Burn-check: python scripts/check_burned.py {study_id} <pub>"""
+    else:
+        steps = f"""1. Read: {folder / 'STUDY_BRIEF.md'}
+2. Read: templates/RWS_SUBMISSION_PLAYBOOK.md + templates/examples/INDEX.md
+3. Log: {folder / 'CANDIDATE_SCREEN.md'}
+4. Write READY candidates to {folder / 'candidates'}/*_RWS_format.txt
+5. Do not submit machine/AI-translated hymns — verified existing translations only"""
+
     return f"""
 ╔══════════════════════════════════════════════════════════════╗
 ║  ACTIVE STUDY: {study_id} — {meta['title']:<33} ║
@@ -82,13 +113,7 @@ def agent_orders(study_id: str) -> str:
 
 WORK ONLY THIS STUDY. Do not hunt other studies until advance.
 
-1. Read: {folder / 'STUDY_BRIEF.md'}
-2. Read: {folder / 'known_art' / 'known_citations.csv'}
-3. Read: templates/RWS_SUBMISSION_PLAYBOOK.md + templates/examples/INDEX.md
-4. Run ZERO_MISS_PROTOCOL.md — all 7 lanes
-5. Log: {folder / 'HUNT_LOG.md'} and {folder / 'CANDIDATE_SCREEN.md'}
-6. Write READY candidates to {folder / 'candidates'}/*_RWS_format.txt
-7. Burn-check: python scripts/check_burned.py {study_id} <pub>
+{steps}
 
 Study patent: {meta['patent']}
 Critical date: {meta['critical_date']}
@@ -110,13 +135,11 @@ def cmd_status(state: dict) -> None:
         st = state["studies"][sid]
         marker = ">>>" if sid == cur else "   "
         blocked = is_blocked(sid)
-        status = st.get("status", "queued")
-        if blocked and sid == "25853":
-            status = "BLOCKED"
+        status = "BLOCKED" if blocked else st.get("status", "queued")
         print(f"{marker} {sid}  {meta['title']}")
         print(f"      status={status}  rounds={st.get('rounds_completed', 0)}  "
               f"candidates={st.get('candidates_found', 0)}")
-        if blocked and sid == "25853":
+        if blocked:
             print(f"      ⚠ paste RWS brief into {meta['folder']}/STUDY_BRIEF.md")
     print(f"\nCurrent: {cur}")
 

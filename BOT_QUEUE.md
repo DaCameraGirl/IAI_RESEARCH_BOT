@@ -4,9 +4,11 @@ The bot works **one study only** until you advance. Order:
 
 | # | Study | Patent | Status |
 |---|-------|--------|--------|
-| 1 | **25867** Remote Memory / Lossy Ethernet | US7702742 | **ACTIVE NOW** |
-| 2 | 25854 Wafer Dividing (fissure) | US8728916 | Queued |
-| 3 | 25853 LED Resin Package | US8530250 | Blocked (paste RWS brief) |
+| 1 | **26052** Blender Offset Blades | US11229891 | **ACTIVE NOW** |
+| 2 | 25974 Oximidol | WO2025201324 | Queued |
+| 3 | 26005 Hymn Research - Cebuano | N/A (copyright) | Queued |
+| 4 | 26006 Hymn Research - Russian | N/A (copyright) | Queued |
+| 5 | 26016 Hymn Research - Italian | N/A (copyright) | Queued |
 
 ## Your commands (3 lines total)
 
@@ -17,7 +19,7 @@ python scripts/study_bot.py
 
 **Tell the agent to hunt (copy from bot output):**
 ```
-hunt 25867 deep
+hunt 26052 deep
 ```
 
 **When round is done, next study:**
@@ -29,5 +31,4 @@ python scripts/study_bot.py advance
 ## Rules
 
 - Agent hunts **only** `bot_state.json` → `current_study`
-- 25853 auto-skips until `STUDY_BRIEF.md` has RWS requirements pasted
 - State file: `bot_state.json`

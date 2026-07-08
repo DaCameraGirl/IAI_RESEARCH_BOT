@@ -9,11 +9,10 @@ import sys
 from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[1]
-STUDY_DIRS = {
-    "25867": REPO / "25867_Remote_Memory_Transactions",
-    "25854": REPO / "25854_Semiconductor_Wafer_Dividing",
-    "25853": REPO / "25853_Light_Emitting_Device_Resin_Package",
-}
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from study_bot import STUDY_META  # noqa: E402
+
+STUDY_DIRS = {sid: REPO / meta["folder"] for sid, meta in STUDY_META.items()}
 
 _PATENT_PREFIXES = ("US", "EP", "WO", "CN", "JP", "KR", "DE", "GB", "FR")
 
@@ -57,11 +56,18 @@ def normalize(doc: str) -> str:
 
 
 def load_burned(study_id: str) -> dict[str, str]:
-    """All known art — every CSV row is BURNED for surfacing to Angela."""
+    """All known art — every CSV row is BURNED for surfacing to Angela.
+
+    Copyright-research studies (hymn translations, etc.) have no patent
+    known-art list, so they burn-check as empty rather than erroring.
+    """
     folder = STUDY_DIRS.get(study_id)
     if not folder:
         raise SystemExit(f"Unknown study {study_id}. Use: {', '.join(STUDY_DIRS)}")
-    csv_path = folder / "known_art" / "known_citations.csv"
+    known_art_dir = folder / "known_art"
+    if not known_art_dir.exists():
+        return {}
+    csv_path = known_art_dir / "known_citations.csv"
     if not csv_path.exists():
         raise SystemExit(f"Missing {csv_path}")
 
@@ -120,7 +126,7 @@ def is_burned(doc: str, burned: dict[str, str]) -> tuple[bool, str]:
 def main() -> None:
     if len(sys.argv) < 3:
         print("Usage: python scripts/check_burned.py <study_id> <doc_number> [doc_number ...]")
-        print("Example: python scripts/check_burned.py 25867 US5613071")
+        print("Example: python scripts/check_burned.py 26052 US11229891")
         raise SystemExit(1)
 
     study_id = sys.argv[1]

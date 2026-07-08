@@ -71,12 +71,13 @@ class TestStudyBot(unittest.TestCase):
             check=False,
         )
         self.assertEqual(proc.returncode, 0)
-        self.assertIn("25867", proc.stdout)
-        self.assertIn("25853", proc.stdout)
+        self.assertIn("26052", proc.stdout)
+        self.assertIn("25974", proc.stdout)
 
-    def test_25853_blocked_detection(self) -> None:
+    def test_no_study_blocked(self) -> None:
         self.patch_state_path()
-        self.assertTrue(self.study_bot.is_blocked("25853"))
+        self.assertFalse(self.study_bot.is_blocked("26052"))
+        self.assertFalse(self.study_bot.is_blocked("25974"))
 
 
 if __name__ == "__main__":
