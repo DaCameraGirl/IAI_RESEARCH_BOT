@@ -338,6 +338,73 @@ def search_worldcat(hymn_title: str, language: str, rows: int = 3) -> list[dict]
         return []
 
 
+
+
+def search_musicbrainz_hymn(hymn_title: str, language: str, rows: int = 5) -> list[dict]:
+    """Search MusicBrainz for hymn recordings (no API key needed)."""
+    import os
+    sys.path.insert(0, str(REPO / "scripts"))
+    from product_search import search_musicbrainz
+    
+    # Build query with hymn title and language
+    query = f"{hymn_title} {language}"
+    
+    try:
+        results = search_musicbrainz(query, before_date=None, max_results=rows)
+        # Convert to hymn_hunter format
+        out = []
+        for r in results:
+            out.append({
+                "source": "musicbrainz",
+                "title": f"{r['title']} by {r['artist']} ({r['release_date']})",
+                "url": r["url"],
+                "artist": r["artist"],
+                "release_date": r["release_date"],
+            })
+        return out
+    except Exception as e:
+        print(f"MusicBrainz search error: {e}")
+        return []
+
+
+def search_discogs_hymn(hymn_title: str, language: str, rows: int = 5) -> list[dict]:
+    """Search Discogs for hymn album releases (requires DISCOGS_API_KEY)."""
+    import os
+    sys.path.insert(0, str(REPO / "scripts"))
+    from product_search import search_discogs
+    
+    # Build query with hymn title and language keywords
+    lang_keywords = {
+        "Italian": "innario",
+        "Russian": "гимн",
+        "Cebuano": "himno",
+        "Spanish": "himnario",
+        "Portuguese": "hinário",
+        "French": "cantique",
+        "German": "Gesangbuch",
+    }
+    extra = lang_keywords.get(language, "hymnal")
+    query = f"{hymn_title} {extra}"
+    
+    try:
+        results = search_discogs(query, before_year=None, max_results=rows)
+        # Convert to hymn_hunter format
+        out = []
+        for r in results:
+            out.append({
+                "source": "discogs",
+                "title": f"{r['title']} ({r['year']}, {r['format']})",
+                "url": r["url"],
+                "artist": r["artist"],
+                "year": r["year"],
+                "format": r["format"],
+            })
+        return out
+    except Exception as e:
+        print(f"Discogs search error: {e}")
+        return []
+
+
 class HymnHuntEngine:
     def __init__(self, study_id: str, on_log: LogFn | None = None) -> None:
         self.study_id = study_id
@@ -393,6 +460,10 @@ class HymnHuntEngine:
             hits += search_hathitrust(hymn, language)
             time.sleep(REQUEST_PAUSE)
             hits += search_worldcat(hymn, language)
+            time.sleep(REQUEST_PAUSE)
+            hits += search_musicbrainz_hymn(hymn, language)
+            time.sleep(REQUEST_PAUSE)
+            hits += search_discogs_hymn(hymn, language)
             time.sleep(REQUEST_PAUSE)
             self.hymns_searched += 1
             if hits:
