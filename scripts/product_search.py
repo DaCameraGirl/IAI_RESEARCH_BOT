@@ -264,13 +264,21 @@ def search_product_evidence(
         max_per_source: Max results per source
     
     Returns:
-        Dict with keys: archive_org, youtube, reddit, wayback
+        Dict with keys: archive_org, youtube, reddit, wayback, wikipedia, google, bing, duckduckgo, semantic_scholar, openalex
     """
+    import os
+    
     results = {
         "archive_org": [],
         "youtube": [],
         "reddit": [],
         "wayback": [],
+        "wikipedia": [],
+        "google": [],
+        "bing": [],
+        "duckduckgo": [],
+        "semantic_scholar": [],
+        "openalex": [],
     }
     
     # Build search queries
@@ -340,6 +348,372 @@ def search_product_evidence(
         if len(results["wayback"]) >= max_per_source * 3:
             break
     
+    # Wikipedia search
+    print("Searching Wikipedia for technical articles...")
+    for query in queries[:3]:
+        hits = search_wikipedia(query, max_results=max_per_source)
+        results["wikipedia"].extend(hits)
+        if len(results["wikipedia"]) >= max_per_source * 2:
+            break
+    
+    # Google Custom Search (if API key available)
+    google_api_key = os.environ.get("GOOGLE_API_KEY")
+    google_search_id = os.environ.get("GOOGLE_SEARCH_ENGINE_ID")
+    if google_api_key and google_search_id:
+        print("Searching Google Custom Search...")
+        # Half queries for web-wide search
+        for query in queries[:2]:
+            hits = search_google_custom(
+                query,
+                api_key=google_api_key,
+                search_engine_id=google_search_id,
+                site_restrict=None,
+                max_results=5,
+            )
+            results["google"].extend(hits)
+        
+        # Half queries for domain-specific search
+        for domain in manufacturer_domains[:2]:
+            for query in queries[:1]:
+                hits = search_google_custom(
+                    query,
+                    api_key=google_api_key,
+                    search_engine_id=google_search_id,
+                    site_restrict=domain,
+                    max_results=5,
+                )
+                results["google"].extend(hits)
+    
+    # Bing Search (if API key available)
+    bing_api_key = os.environ.get("BING_API_KEY")
+    if bing_api_key:
+        print("Searching Bing...")
+        for query in queries[:3]:
+            hits = search_bing(query, api_key=bing_api_key, max_results=max_per_source)
+            results["bing"].extend(hits)
+            if len(results["bing"]) >= max_per_source * 2:
+                break
+    
+    # DuckDuckGo search (no API key needed)
+    print("Searching DuckDuckGo...")
+    for query in queries[:3]:
+        hits = search_duckduckgo(query, max_results=max_per_source)
+        results["duckduckgo"].extend(hits)
+        if len(results["duckduckgo"]) >= max_per_source * 2:
+            break
+    
+    # Semantic Scholar (academic papers)
+    print("Searching Semantic Scholar for academic papers...")
+    before_year = int(before_date[:4])
+    for query in queries[:3]:
+        hits = search_semantic_scholar(query, before_year=before_year, max_results=max_per_source)
+        results["semantic_scholar"].extend(hits)
+        if len(results["semantic_scholar"]) >= max_per_source * 2:
+            break
+    
+    # OpenAlex (academic papers - better coverage)
+    print("Searching OpenAlex for academic papers...")
+    for query in queries[:3]:
+        hits = search_openalex(query, before_date=before_date, max_results=max_per_source)
+        results["openalex"].extend(hits)
+        if len(results["openalex"]) >= max_per_source * 2:
+            break
+    
+    return results
+
+
+def search_wikipedia(
+    query: str,
+    max_results: int = 5,
+) -> list[dict[str, str]]:
+    """
+    Search Wikipedia and extract references + revision history.
+    
+    Args:
+        query: Search query (e.g., "blender blade design")
+        max_results: Maximum number of articles to return
+    
+    Returns:
+        List of dicts with keys: title, url, summary, references, last_edited
+    """
+    # Wikipedia API search
+    search_url = (
+        f"https://en.wikipedia.org/w/api.php?"
+        f"action=query&list=search&srsearch={urllib.parse.quote(query)}"
+        f"&format=json&srlimit={max_results}"
+    )
+    
+    data = _fetch_json(search_url)
+    if not data or "query" not in data:
+        return []
+    
+    results = []
+    for item in data["query"].get("search", []):
+        page_id = item.get("pageid")
+        title = item.get("title", "Unknown")
+        
+        # Get page content and references
+        content_url = (
+            f"https://en.wikipedia.org/w/api.php?"
+            f"action=query&pageids={page_id}&prop=extracts|info|revisions"
+            f"&exintro=1&explaintext=1&inprop=url&rvprop=timestamp&format=json"
+        )
+        
+        page_data = _fetch_json(content_url)
+        if not page_data or "query" not in page_data:
+            continue
+        
+        pages = page_data["query"].get("pages", {})
+        page_info = pages.get(str(page_id), {})
+        
+        results.append({
+            "title": title,
+            "url": page_info.get("fullurl", f"https://en.wikipedia.org/wiki/{title.replace(' ', '_')}"),
+            "summary": page_info.get("extract", "")[:300],
+            "last_edited": page_info.get("revisions", [{}])[0].get("timestamp", "unknown")[:10] if page_info.get("revisions") else "unknown",
+            "page_id": page_id,
+        })
+    
+    return results
+
+
+def search_google_custom(
+    query: str,
+    api_key: str,
+    search_engine_id: str,
+    site_restrict: str | None = None,
+    max_results: int = 10,
+) -> list[dict[str, str]]:
+    """
+    Search using Google Custom Search API.
+    
+    Args:
+        query: Search query
+        api_key: Google API key
+        search_engine_id: Custom Search Engine ID
+        site_restrict: Optional domain to restrict (e.g., "vitamix.com")
+        max_results: Maximum results (max 10 per query)
+    
+    Returns:
+        List of dicts with keys: title, url, snippet, display_url
+    """
+    if not api_key or not search_engine_id:
+        print("Google Custom Search requires API_KEY and SEARCH_ENGINE_ID")
+        return []
+    
+    q = urllib.parse.quote(query)
+    url = (
+        f"https://www.googleapis.com/customsearch/v1?"
+        f"key={api_key}&cx={search_engine_id}&q={q}&num={min(max_results, 10)}"
+    )
+    
+    if site_restrict:
+        url += f"&siteSearch={site_restrict}&siteSearchFilter=i"
+    
+    data = _fetch_json(url)
+    if not data or "items" not in data:
+        return []
+    
+    results = []
+    for item in data.get("items", []):
+        results.append({
+            "title": item.get("title", "Unknown"),
+            "url": item.get("link", ""),
+            "snippet": item.get("snippet", "")[:200],
+            "display_url": item.get("displayLink", ""),
+        })
+    
+    return results
+
+
+def search_bing(
+    query: str,
+    api_key: str,
+    max_results: int = 10,
+) -> list[dict[str, str]]:
+    """
+    Search using Bing Search API.
+    
+    Args:
+        query: Search query
+        api_key: Bing API key
+        max_results: Maximum results
+    
+    Returns:
+        List of dicts with keys: title, url, snippet
+    """
+    if not api_key:
+        print("Bing Search requires BING_API_KEY")
+        return []
+    
+    url = f"https://api.bing.microsoft.com/v7.0/search?q={urllib.parse.quote(query)}&count={max_results}"
+    
+    try:
+        req = urllib.request.Request(url, headers={
+            "Ocp-Apim-Subscription-Key": api_key,
+            "User-Agent": USER_AGENT
+        })
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+        print(f"Bing fetch error: {e}")
+        return []
+    
+    results = []
+    for item in data.get("webPages", {}).get("value", []):
+        results.append({
+            "title": item.get("name", "Unknown"),
+            "url": item.get("url", ""),
+            "snippet": item.get("snippet", "")[:200],
+        })
+    
+    return results
+
+
+def search_duckduckgo(
+    query: str,
+    max_results: int = 10,
+) -> list[dict[str, str]]:
+    """
+    Search using DuckDuckGo Instant Answer API (limited results).
+    
+    Args:
+        query: Search query
+        max_results: Maximum results (DuckDuckGo returns limited results)
+    
+    Returns:
+        List of dicts with keys: title, url, snippet
+    """
+    url = f"https://api.duckduckgo.com/?q={urllib.parse.quote(query)}&format=json"
+    
+    data = _fetch_json(url)
+    if not data:
+        return []
+    
+    results = []
+    
+    # Abstract (main result)
+    if data.get("Abstract"):
+        results.append({
+            "title": data.get("Heading", "DuckDuckGo Result"),
+            "url": data.get("AbstractURL", ""),
+            "snippet": data.get("Abstract", "")[:200],
+        })
+    
+    # Related topics
+    for topic in data.get("RelatedTopics", [])[:max_results]:
+        if isinstance(topic, dict) and "Text" in topic:
+            results.append({
+                "title": topic.get("Text", "")[:100],
+                "url": topic.get("FirstURL", ""),
+                "snippet": topic.get("Text", "")[:200],
+            })
+    
+    return results[:max_results]
+
+
+def search_semantic_scholar(
+    query: str,
+    before_year: int | None = None,
+    max_results: int = 10,
+) -> list[dict[str, str]]:
+    """
+    Search Semantic Scholar for academic papers.
+    
+    Args:
+        query: Search query
+        before_year: Only papers published before this year
+        max_results: Maximum results
+    
+    Returns:
+        List of dicts with keys: title, url, authors, year, doi, abstract
+    """
+    url = (
+        f"https://api.semanticscholar.org/graph/v1/paper/search?"
+        f"query={urllib.parse.quote(query)}&limit={max_results}"
+        f"&fields=title,authors,year,abstract,externalIds,url"
+    )
+    
+    if before_year:
+        url += f"&year=-{before_year}"
+    
+    data = _fetch_json(url)
+    if not data or "data" not in data:
+        return []
+    
+    results = []
+    for paper in data.get("data", []):
+        authors = ", ".join(a.get("name", "") for a in paper.get("authors", [])[:3])
+        if len(paper.get("authors", [])) > 3:
+            authors += " et al."
+        
+        results.append({
+            "title": paper.get("title", "Unknown"),
+            "url": paper.get("url", ""),
+            "authors": authors,
+            "year": str(paper.get("year", "unknown")),
+            "doi": paper.get("externalIds", {}).get("DOI", ""),
+            "abstract": paper.get("abstract", "")[:300],
+        })
+    
+    return results
+
+
+def search_openalex(
+    query: str,
+    before_date: str | None = None,
+    max_results: int = 10,
+) -> list[dict[str, str]]:
+    """
+    Search OpenAlex for academic papers (better coverage than Crossref).
+    
+    Args:
+        query: Search query
+        before_date: ISO date string (YYYY-MM-DD)
+        max_results: Maximum results
+    
+    Returns:
+        List of dicts with keys: title, url, authors, date, doi, abstract
+    """
+    url = (
+        f"https://api.openalex.org/works?"
+        f"search={urllib.parse.quote(query)}&per-page={max_results}"
+    )
+    
+    if before_date:
+        url += f"&filter=publication_date:<{before_date}"
+    
+    # OpenAlex requires email in User-Agent
+    headers = {
+        "User-Agent": f"{USER_AGENT}; mailto:research@example.com"
+    }
+    
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+        print(f"OpenAlex fetch error: {e}")
+        return []
+    
+    results = []
+    for work in data.get("results", []):
+        authors = ", ".join(
+            a.get("author", {}).get("display_name", "")
+            for a in work.get("authorships", [])[:3]
+        )
+        if len(work.get("authorships", [])) > 3:
+            authors += " et al."
+        
+        results.append({
+            "title": work.get("title", "Unknown"),
+            "url": work.get("doi", "") or work.get("id", ""),
+            "authors": authors,
+            "date": work.get("publication_date", "unknown"),
+            "doi": work.get("doi", "").replace("https://doi.org/", ""),
+            "abstract": (work.get("abstract_inverted_index") or {}).get("abstract", "")[:300] if work.get("abstract_inverted_index") else "",
+        })
+    
     return results
 
 
@@ -351,14 +725,26 @@ if __name__ == "__main__":
     for r in archive_results[:2]:
         print(f"  - {r['title']} ({r['year']}): {r['url']}")
     
-    print("\nTesting Reddit search...")
-    reddit_results = search_reddit("blender blade design", max_results=5)
-    print(f"Found {len(reddit_results)} Reddit results")
-    for r in reddit_results[:2]:
-        print(f"  - {r['title']} (r/{r['subreddit']}): {r['url']}")
+    print("\nTesting Wikipedia search...")
+    wiki_results = search_wikipedia("blender", max_results=3)
+    print(f"Found {len(wiki_results)} Wikipedia results")
+    for r in wiki_results[:2]:
+        print(f"  - {r['title']}: {r['url']}")
     
-    print("\nTesting Wayback Machine search...")
-    wayback_results = search_wayback_machine("vitamix.com", to_date="20191231")
-    print(f"Found {len(wayback_results)} Wayback snapshots")
-    for r in wayback_results[:2]:
-        print(f"  - {r['date']}: {r['url']}")
+    print("\nTesting DuckDuckGo search...")
+    ddg_results = search_duckduckgo("blender blade offset", max_results=5)
+    print(f"Found {len(ddg_results)} DuckDuckGo results")
+    for r in ddg_results[:2]:
+        print(f"  - {r['title']}: {r['url']}")
+    
+    print("\nTesting Semantic Scholar search...")
+    ss_results = search_semantic_scholar("blender mixing efficiency", before_year=2020, max_results=5)
+    print(f"Found {len(ss_results)} Semantic Scholar results")
+    for r in ss_results[:2]:
+        print(f"  - {r['title']} ({r['year']})")
+    
+    print("\nTesting OpenAlex search...")
+    oa_results = search_openalex("blender vortex mixing", before_date="2020-01-01", max_results=5)
+    print(f"Found {len(oa_results)} OpenAlex results")
+    for r in oa_results[:2]:
+        print(f"  - {r['title']} ({r['date']})")

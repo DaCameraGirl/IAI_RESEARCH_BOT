@@ -15,11 +15,17 @@ Your bot now runs **8-lane deep hunts** including product evidence search:
 ### Non-Patent Literature (L5)
 - **L5**: NPL Crossref (academic papers pre-dating critical date)
 
-### Product Evidence (L7) - NEW!
+### Product Evidence (L7) - NEW! (10 Sources)
 - **Archive.org**: Product manuals, catalogs, datasheets
-- **YouTube**: Teardown/repair videos (requires API key)
-- **Reddit**: Product discussions with photos
+- **YouTube**: Teardown/repair videos (requires YOUTUBE_API_KEY)
+- **Reddit**: Product discussions with photos (requires REDDIT_API_KEY)
 - **Wayback Machine**: Archived manufacturer websites (2010-2019)
+- **Wikipedia**: Technical articles with references + revision history
+- **Google Custom Search**: Web-wide + domain-specific (requires GOOGLE_API_KEY + GOOGLE_SEARCH_ENGINE_ID)
+- **Bing Search**: Web search (requires BING_API_KEY)
+- **DuckDuckGo**: Instant answers (no API key needed)
+- **Semantic Scholar**: Academic papers with citations
+- **OpenAlex**: Academic papers (better coverage than Crossref)
 
 ### Known Citation Mining (L6)
 - **L6**: Backward cites from all burned patents (finds NEW art via old seeds)
@@ -97,14 +103,42 @@ Next Steps:
 6. If valid, format as proper RWS submission with screenshots
 ```
 
-### Setup (Optional)
+### API Setup (Optional - Expands L7 from 4 to 10 sources)
 
-For YouTube search, set environment variable:
-```bash
-set YOUTUBE_API_KEY=your_api_key_here
-```
+**Free APIs (No Key Needed):**
+- ✅ Archive.org - Already working
+- ✅ Wayback Machine - Already working
+- ✅ Wikipedia - Already working
+- ✅ DuckDuckGo - Already working
+- ✅ OpenAlex - Already working
 
-Without API key, YouTube search is skipped (other sources still work).
+**Free APIs (Key Required):**
+
+1. **YouTube Data API v3** (10,000 queries/day free)
+   - Get key: https://console.cloud.google.com/apis/library/youtube.googleapis.com
+   - Set: `set YOUTUBE_API_KEY=your_key_here`
+
+2. **Reddit API** (60 requests/minute free)
+   - Get key: https://www.reddit.com/prefs/apps → "create app" → choose "script"
+   - Set: `set REDDIT_CLIENT_ID=your_client_id`
+   - Set: `set REDDIT_CLIENT_SECRET=your_client_secret`
+
+3. **Google Custom Search** (100 queries/day free)
+   - Get API key: https://console.cloud.google.com/apis/library/customsearch.googleapis.com
+   - Create search engine: https://programmablesearchengine.google.com/
+   - Set: `set GOOGLE_API_KEY=your_api_key`
+   - Set: `set GOOGLE_SEARCH_ENGINE_ID=your_search_engine_id`
+
+4. **Bing Search API** (1,000 queries/month free)
+   - Get key: https://www.microsoft.com/en-us/bing/apis/bing-web-search-api
+   - Set: `set BING_API_KEY=your_key_here`
+
+5. **Semantic Scholar** (Rate limited but no key needed for basic use)
+   - No setup required - works out of the box
+   - For higher limits: https://www.semanticscholar.org/product/api
+
+**Without API keys:** Bot searches 5 sources (Archive.org, Wayback, Wikipedia, DuckDuckGo, OpenAlex)
+**With all API keys:** Bot searches 10 sources (adds YouTube, Reddit, Google, Bing, Semantic Scholar)
 
 ---
 
