@@ -395,8 +395,24 @@ header {
   flex: 1; min-width: 200px;
 }
 .btn-hunt:hover { box-shadow: 0 12px 40px rgba(212,168,83,0.4); }
-.btn-hunt.running { animation: pulse 1.8s ease infinite; }
-@keyframes pulse { 0%,100%{ box-shadow: 0 8px 32px rgba(212,168,83,0.28);} 50%{ box-shadow: 0 8px 48px rgba(212,168,83,0.55);} }
+.btn-hunt.running { 
+  animation: pulse-green 1.2s ease infinite; 
+  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
+  box-shadow: 0 8px 32px rgba(52,211,153,0.4);
+}
+@keyframes pulse-green { 
+  0%,100%{ box-shadow: 0 8px 32px rgba(52,211,153,0.4); transform: scale(1); } 
+  50%{ box-shadow: 0 12px 48px rgba(52,211,153,0.7); transform: scale(1.02); } 
+}
+.btn-round-done {
+  background: linear-gradient(135deg, #fbbf24 0%, #f59e0b 100%);
+  color: var(--ink); box-shadow: 0 8px 32px rgba(251,191,36,0.3);
+}
+.btn-round-done.blink { animation: blink-gold 0.8s ease infinite; }
+@keyframes blink-gold {
+  0%,100%{ opacity: 1; box-shadow: 0 8px 32px rgba(251,191,36,0.3); }
+  50%{ opacity: 0.6; box-shadow: 0 12px 48px rgba(251,191,36,0.6); }
+}
 .btn-ghost {
   background: rgba(255,255,255,0.05); color: var(--cream);
   border: 1px solid rgba(255,255,255,0.1);
@@ -540,6 +556,7 @@ footer {
         </div>
         <div class="actions">
           <button class="btn btn-hunt" id="huntBtn">⚡ Run Deep Hunt</button>
+          <button class="btn btn-round-done" id="roundBtn" style="display:none">✓ Round Done</button>
           <button class="btn btn-stop" id="stopBtn" style="display:none">Stop</button>
         </div>
       </div>
@@ -763,6 +780,8 @@ function pollLogs() {
       $('genieAvatar').classList.remove('hunting');
       $('huntBtn').classList.remove('running');
       $('stopBtn').style.display = 'none';
+      $('roundBtn').style.display = 'inline-block';
+      $('roundBtn').classList.add('blink');
       clearInterval(pollTimer);
       loadState();
       loadCandidates();
@@ -772,6 +791,10 @@ function pollLogs() {
 
 $('huntBtn').onclick = startHunt;
 $('stopBtn').onclick = async () => { await api('/api/hunt/stop', {method:'POST'}); };
+$('roundBtn').onclick = () => { 
+  $('roundBtn').style.display = 'none'; 
+  $('roundBtn').classList.remove('blink'); 
+};
 
 $('addStudyBtn').onclick = async () => {
   const study_id = $('newStudyId').value.trim();
