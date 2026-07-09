@@ -601,7 +601,7 @@ footer {
           <p style="color:var(--muted);font-size:0.82rem;line-height:1.6">
           <strong style="color:var(--gold)">Run Deep Hunt</strong> runs 8 lanes: backward cites, 2-hop + 3-hop graph,
           assignee sweep, 20 synonym + CPC searches, NPL Crossref (pre-date only), known-cite seed expansion.
-          Inspects up to <strong>300</strong> patents. READY requires <strong>high</strong> confidence + ≥2 req-yes + priority RR hit.
+          Inspects up to <strong>500</strong> patents (ULTRA-DEEP mode). READY requires <strong>high</strong> confidence + ≥2 req-yes + priority RR hit.
         </p>
       </div>
     </div>

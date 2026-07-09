@@ -27,18 +27,18 @@ from study_requirements import ctrl_f_phrases, map_requirements  # noqa: E402
 
 LogFn = Callable[[str, str], None]  # message, level
 
-MAX_INSPECT = 300
+MAX_INSPECT = 500
 HOLD_MIN_RANK = 1
 
-# Lane depth — tuned for longer hunts
-L1_CITE_LIMIT = 120
-L2_HOP1_LIMIT = 60
-L2_CITES_PER = 25
-L2_HOP3_LIMIT = 25
-L3_PER_QUERY = 30
-L4_PER_QUERY = 20
-L6_SEED_LIMIT = 50
-L6_CITES_PER = 15
+# Lane depth — tuned for ULTRA-DEEP hunts
+L1_CITE_LIMIT = 200
+L2_HOP1_LIMIT = 100
+L2_CITES_PER = 40
+L2_HOP3_LIMIT = 50
+L3_PER_QUERY = 50
+L4_PER_QUERY = 35
+L6_SEED_LIMIT = 80
+L6_CITES_PER = 25
 
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
