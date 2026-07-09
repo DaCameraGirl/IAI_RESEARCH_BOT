@@ -1,0 +1,37 @@
+# AI Engine Requirements
+# Advanced ML/AI dependencies for 1000x better research bot
+
+# Core ML/NLP
+sentence-transformers>=2.2.0  # Semantic similarity, embeddings
+transformers>=4.30.0          # Hugging Face transformers
+torch>=2.0.0                  # PyTorch backend
+
+# Machine Learning
+scikit-learn>=1.3.0           # ML models, preprocessing
+numpy>=1.24.0                 # Numerical computing
+pandas>=2.0.0                 # Data manipulation
+
+# Text Processing
+nltk>=3.8.0                   # Natural language toolkit
+spacy>=3.5.0                  # Advanced NLP
+python-dateutil>=2.8.0        # Date parsing
+
+# API Integration
+requests>=2.31.0              # HTTP requests
+aiohttp>=3.8.0                # Async HTTP
+beautifulsoup4>=4.12.0        # HTML parsing
+lxml>=4.9.0                   # XML/HTML processing
+
+# PDF Processing
+PyPDF2>=3.0.0                 # PDF reading
+pdfplumber>=0.9.0             # PDF text extraction
+pypdf>=3.15.0                 # Modern PDF library
+
+# Utilities
+tqdm>=4.65.0                  # Progress bars
+python-dotenv>=1.0.0          # Environment variables
+pyyaml>=6.0                   # YAML parsing
+
+# Optional but recommended
+# faiss-cpu>=1.7.4            # Fast similarity search (CPU version)
+# chromadb>=0.4.0             # Vector database

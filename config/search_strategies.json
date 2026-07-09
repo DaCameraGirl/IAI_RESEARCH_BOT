@@ -1,0 +1,177 @@
+{
+  "invalidity_product": {
+    "name": "Invalidity - Product Prior Art",
+    "description": "Search for product evidence: datasheets, catalogs, brochures, press releases",
+    "sources": {
+      "wayback": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Search archived manufacturer and distributor sites for product pages, datasheets, press releases"
+      },
+      "fcc": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Search FCC equipment authorization database for exhibits containing datasheets"
+      },
+      "ptab": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Extract NPL exhibits from IPRs against the target patent"
+      },
+      "usenet": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search USENET for engineer discussions mentioning the product"
+      },
+      "university": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search university lab pages and course materials for equipment mentions"
+      },
+      "distributor": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Search distributor archives for old datasheets and product catalogs"
+      },
+      "archive_texts": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search trade magazines and technical publications"
+      },
+      "github": {
+        "enabled": true,
+        "priority": 3,
+        "strategy": "Search open source projects for datasheets and documentation"
+      },
+      "forums": {
+        "enabled": true,
+        "priority": 3,
+        "strategy": "Search technical forums for product discussions with dates"
+      }
+    },
+    "keyword_extraction": {
+      "from_brief": ["part_numbers", "product_names", "manufacturers", "technical_terms"],
+      "from_patent": ["claims", "abstract", "figures"],
+      "synonyms": true
+    },
+    "domain_extraction": {
+      "manufacturer_sites": true,
+      "distributor_sites": true,
+      "industry_sites": true
+    }
+  },
+  "invalidity_npl": {
+    "name": "Invalidity - NPL (Journal Articles)",
+    "description": "Search for academic papers, conference proceedings, technical reports",
+    "sources": {
+      "wayback": {
+        "enabled": false,
+        "priority": 3
+      },
+      "fcc": {
+        "enabled": false,
+        "priority": 3
+      },
+      "ptab": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Extract NPL exhibits from related IPRs"
+      },
+      "usenet": {
+        "enabled": false,
+        "priority": 3
+      },
+      "university": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Search thesis repositories and research publications"
+      },
+      "distributor": {
+        "enabled": false,
+        "priority": 3
+      },
+      "archive_texts": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search conference proceedings and technical journals"
+      },
+      "github": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search research code repositories and documentation"
+      },
+      "forums": {
+        "enabled": false,
+        "priority": 3
+      }
+    },
+    "keyword_extraction": {
+      "from_brief": ["technical_terms", "methods", "compounds"],
+      "from_patent": ["claims", "background", "abstract"],
+      "synonyms": true
+    },
+    "domain_extraction": {
+      "manufacturer_sites": false,
+      "distributor_sites": false,
+      "industry_sites": false
+    }
+  },
+  "copyright": {
+    "name": "Copyright Research",
+    "description": "Search for existing translations, publications, recordings",
+    "sources": {
+      "wayback": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Search archived websites for existing translations"
+      },
+      "fcc": {
+        "enabled": false,
+        "priority": 3
+      },
+      "ptab": {
+        "enabled": false,
+        "priority": 3
+      },
+      "usenet": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search USENET for discussions about translations"
+      },
+      "university": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Search university libraries and digital collections"
+      },
+      "distributor": {
+        "enabled": false,
+        "priority": 3
+      },
+      "archive_texts": {
+        "enabled": true,
+        "priority": 1,
+        "strategy": "Search Internet Archive for books, hymnals, recordings"
+      },
+      "github": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search repositories for translation projects"
+      },
+      "forums": {
+        "enabled": true,
+        "priority": 2,
+        "strategy": "Search forums for translation discussions"
+      }
+    },
+    "keyword_extraction": {
+      "from_brief": ["titles", "authors", "languages", "phrases"],
+      "from_patent": [],
+      "synonyms": true
+    },
+    "domain_extraction": {
+      "manufacturer_sites": false,
+      "distributor_sites": false,
+      "industry_sites": false
+    }
+  }
+}
