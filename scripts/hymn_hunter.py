@@ -112,13 +112,30 @@ def search_internet_archive(hymn_title: str, language: str, rows: int = 5) -> li
     dominated by radio broadcast / sermon audio transcripts that merely
     co-mention the title and the language name.
     """
-    query = f'"{hymn_title}" AND {language} AND mediatype:(texts)'
+    # Add language-specific keywords to filter out English sources
+    lang_keywords = {
+        "Italian": "inno OR innario OR canto",
+        "Russian": "гимн OR песня",
+        "Cebuano": "awit OR himno"
+    }
+    extra = lang_keywords.get(language, "")
+    if extra:
+        query = f'"{hymn_title}" AND ({extra}) AND mediatype:(texts)'
+    else:
+        query = f'"{hymn_title}" AND {language} AND mediatype:(texts)'
     return _ia_search(query, rows)
 
 
 def search_google_books(hymn_title: str, language: str, language_code: str | None, rows: int = 5) -> list[dict]:
     """Real, keyless (free-tier) search against the Google Books API."""
-    query = f'"{hymn_title}" {language} hymnal'
+    # Add language-specific keywords to improve relevance
+    lang_keywords = {
+        "Italian": "inno OR innario",
+        "Russian": "гимн",
+        "Cebuano": "awit OR himno"
+    }
+    extra = lang_keywords.get(language, "hymnal")
+    query = f'"{hymn_title}" {language} {extra}'
     params = {"q": query, "maxResults": str(rows)}
     if language_code:
         params["langRestrict"] = language_code
