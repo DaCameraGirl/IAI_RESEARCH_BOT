@@ -78,6 +78,8 @@ class PatentRecord:
 
 
 def _fetch_html(url: str) -> str:
+    # Rate limit: 1.5 second delay between requests to avoid 503 errors
+    time.sleep(1.5)
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=20) as resp:
         return resp.read().decode("utf-8", "replace")
