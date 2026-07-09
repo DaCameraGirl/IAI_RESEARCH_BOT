@@ -2,44 +2,45 @@
 
 When you double-click `RWS Research Bot.lnk` on your desktop, Windows SmartScreen may block it because the .exe is not digitally signed.
 
-## Method 1: Right-Click Properties (Most Reliable)
+## ✅ EASIEST METHOD: Use Python Version (Recommended)
 
-1. **Right-click** the desktop shortcut "RWS Research Bot.lnk"
-2. Select **Properties**
-3. Click the **"Open File Location"** button (opens the dist folder)
-4. **Right-click** `RWS_Research_Bot.exe`
-5. Select **Properties**
-6. At the bottom, check the box: **"Unblock"**
-7. Click **Apply** → **OK**
-8. Now double-click the desktop shortcut - it will work!
-
-## Method 2: Run from PowerShell
-
-```powershell
-cd "C:\Users\enter\OneDrive\Desktop\RWS_RESEARCH_BOT\dist"
-.\RWS_Research_Bot.exe
-```
-
-## Method 3: Add Windows Defender Exception
-
-1. Open **Windows Security**
-2. Go to **Virus & threat protection**
-3. Click **Manage settings**
-4. Scroll to **Exclusions** → Click **Add or remove exclusions**
-5. Click **Add an exclusion** → **Folder**
-6. Select: `C:\Users\enter\OneDrive\Desktop\RWS_RESEARCH_BOT\dist`
-7. Click **Select Folder**
-
-## Method 4: Use Python Version (No SmartScreen)
-
-The Python version works identically with no warnings:
+**No SmartScreen warning, works immediately:**
 
 ```powershell
 cd "C:\Users\enter\OneDrive\Desktop\RWS_RESEARCH_BOT"
 python scripts/rws_web.py
 ```
 
-Opens browser at http://127.0.0.1:7842 - same interface, same features!
+Opens browser at http://127.0.0.1:7842 - identical interface and features!
+
+## Method 2: Add Windows Defender Exception
+
+1. Open **Windows Security** (search in Start menu)
+2. Go to **Virus & threat protection**
+3. Click **Manage settings**
+4. Scroll to **Exclusions** → Click **Add or remove exclusions**
+5. Click **Add an exclusion** → **Folder**
+6. Browse to: `C:\Users\enter\OneDrive\Desktop\RWS_RESEARCH_BOT\dist`
+7. Click **Select Folder**
+8. ✅ Now the .exe will run without warnings!
+
+## Method 3: Run from PowerShell (Bypasses SmartScreen)
+
+```powershell
+cd "C:\Users\enter\OneDrive\Desktop\RWS_RESEARCH_BOT\dist"
+Start-Process .\RWS_Research_Bot.exe
+```
+
+## Method 4: Disable SmartScreen Temporarily (Not Recommended)
+
+**Only if you trust the file completely:**
+
+1. Open **Windows Security**
+2. Go to **App & browser control**
+3. Click **Reputation-based protection settings**
+4. Turn OFF **Check apps and files**
+5. Run the .exe
+6. Turn it back ON afterwards
 
 ## Why This Happens
 
@@ -47,13 +48,21 @@ Opens browser at http://127.0.0.1:7842 - same interface, same features!
 - Windows blocks unsigned apps by default
 - This is normal for open-source software
 - **The code is safe** - you built it yourself from your own repository!
+- Files created locally (not downloaded) don't have an "Unblock" checkbox
 
-## Recommended Solution
+## Best Solution
 
-**Use Method 1 (Unblock in Properties)** - it's permanent and only takes 30 seconds.
+**Just use the Python version** - it's the same bot, same features, no warnings:
 
-After unblocking once, Windows will never block it again.
+```powershell
+python scripts/rws_web.py
+```
 
-## Still Having Issues?
+You can even create a `.bat` file on your desktop:
+```batch
+@echo off
+cd "C:\Users\enter\OneDrive\Desktop\RWS_RESEARCH_BOT"
+python scripts/rws_web.py
+```
 
-Just use the Python version - it's identical functionality without any SmartScreen warnings!
+Save as `Launch_RWS_Bot.bat` on your desktop and double-click it!
