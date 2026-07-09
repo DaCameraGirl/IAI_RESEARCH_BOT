@@ -233,6 +233,7 @@ def _start_hunt(study_id: str) -> dict:
                 state = load_state()
                 if study_id in state["studies"]:
                     state["studies"][study_id]["candidates_found"] = _hunt_result.get("leads_found", 0)
+                    state["studies"][study_id]["rounds_completed"] = state["studies"][study_id].get("rounds_completed", 0) + 1
                 save_state(state)
             except Exception as exc:
                 on_log(f"Hunt error: {exc}", "error")
@@ -245,6 +246,7 @@ def _start_hunt(study_id: str) -> dict:
             state = load_state()
             if study_id in state["studies"]:
                 state["studies"][study_id]["candidates_found"] = _hunt_result.get("ready", 0)
+                state["studies"][study_id]["rounds_completed"] = state["studies"][study_id].get("rounds_completed", 0) + 1
             save_state(state)
         except Exception as exc:
             on_log(f"Hunt error: {exc}", "error")
