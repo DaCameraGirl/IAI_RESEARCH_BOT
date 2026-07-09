@@ -41,11 +41,13 @@ LogFn = Callable[[str, str], None]
 
 IA_SEARCH_URL = "https://archive.org/advancedsearch.php"
 GB_SEARCH_URL = "https://www.googleapis.com/books/v1/volumes"
+HATHI_SEARCH_URL = "https://catalog.hathitrust.org/api/volumes/brief/json"
+WORLDCAT_SEARCH_URL = "http://www.worldcat.org/search"
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
-REQUEST_PAUSE = 0.3
+REQUEST_PAUSE = 0.5
 MAX_HYMNS_PER_ROUND = 125
 
 
@@ -116,7 +118,14 @@ def search_internet_archive(hymn_title: str, language: str, rows: int = 5) -> li
     lang_keywords = {
         "Italian": "inno OR innario OR canto",
         "Russian": "гимн OR песня",
-        "Cebuano": "awit OR himno"
+        "Cebuano": "awit OR himno",
+        "Spanish": "himno OR himnario OR canto",
+        "Portuguese": "hino OR hinário",
+        "French": "hymne OR cantique",
+        "German": "Lied OR Gesangbuch",
+        "Chinese": "赞美诗 OR 圣诗",
+        "Japanese": "賛美歌",
+        "Korean": "찬송가"
     }
     extra = lang_keywords.get(language, "")
     if extra:
@@ -132,7 +141,14 @@ def search_google_books(hymn_title: str, language: str, language_code: str | Non
     lang_keywords = {
         "Italian": "inno OR innario",
         "Russian": "гимн",
-        "Cebuano": "awit OR himno"
+        "Cebuano": "awit OR himno",
+        "Spanish": "himno OR himnario",
+        "Portuguese": "hino OR hinário",
+        "French": "hymne OR cantique",
+        "German": "Lied OR Gesangbuch",
+        "Chinese": "赞美诗 OR 圣诗",
+        "Japanese": "賛美歌",
+        "Korean": "찬송가"
     }
     extra = lang_keywords.get(language, "hymnal")
     query = f'"{hymn_title}" {language} {extra}'
@@ -160,6 +176,86 @@ def search_google_books(hymn_title: str, language: str, language_code: str | Non
             }
         )
     return out
+
+
+def search_hathitrust(hymn_title: str, language: str, rows: int = 5) -> list[dict]:
+    """Search HathiTrust Digital Library catalog."""
+    lang_keywords = {
+        "Italian": "inno innario",
+        "Russian": "гимн",
+        "Cebuano": "awit himno",
+        "Spanish": "himno himnario",
+        "Portuguese": "hino hinário",
+        "French": "hymne cantique",
+        "German": "Lied Gesangbuch",
+        "Chinese": "赞美诗",
+        "Japanese": "賛美歌",
+        "Korean": "찬송가"
+    }
+    extra = lang_keywords.get(language, "hymnal")
+    query = f'"{hymn_title}" {extra}'
+    
+    # HathiTrust catalog search (web scraping fallback since API requires auth)
+    search_url = f"https://catalog.hathitrust.org/Search/Home?lookfor={urllib.parse.quote(query)}&type=all"
+    
+    try:
+        req = urllib.request.Request(search_url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+        
+        # Simple extraction - look for result links
+        import re
+        results = []
+        matches = re.findall(r'<a[^>]+href="(/Record/\d+)"[^>]*>([^<]+)</a>', html)
+        for path, title in matches[:rows]:
+            results.append({
+                "source": "hathitrust",
+                "title": title.strip(),
+                "url": f"https://catalog.hathitrust.org{path}"
+            })
+        return results
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return []
+
+
+def search_worldcat(hymn_title: str, language: str, rows: int = 3) -> list[dict]:
+    """Search WorldCat library catalog."""
+    lang_keywords = {
+        "Italian": "inno",
+        "Russian": "гимн",
+        "Cebuano": "awit",
+        "Spanish": "himno",
+        "Portuguese": "hino",
+        "French": "hymne",
+        "German": "Lied",
+        "Chinese": "赞美诗",
+        "Japanese": "賛美歌",
+        "Korean": "찬송가"
+    }
+    extra = lang_keywords.get(language, "hymnal")
+    query = f'"{hymn_title}" {extra}'
+    
+    search_url = f"https://www.worldcat.org/search?q={urllib.parse.quote(query)}&qt=results_page"
+    
+    try:
+        req = urllib.request.Request(search_url, headers={"User-Agent": USER_AGENT})
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+        
+        # Simple extraction
+        import re
+        results = []
+        matches = re.findall(r'<a[^>]+href="(https://www\.worldcat\.org/title/[^"]+)"[^>]*>([^<]+)</a>', html)
+        for url, title in matches[:rows]:
+            if "title" in url:
+                results.append({
+                    "source": "worldcat",
+                    "title": title.strip(),
+                    "url": url
+                })
+        return results
+    except (urllib.error.URLError, TimeoutError, ValueError):
+        return []
 
 
 class HymnHuntEngine:
@@ -204,7 +300,7 @@ class HymnHuntEngine:
         self.log(f"  Found {len(hymnal_sources)} candidate hymnal source(s)", "info")
         time.sleep(REQUEST_PAUSE)
 
-        self.log(f"Lane 2: searching each of {len(hymns)} hymns individually", "lane")
+        self.log(f"Lane 2: searching each of {len(hymns)} hymns individually (4 sources)", "lane")
         leads: list[dict] = []
         for hymn in hymns[:MAX_HYMNS_PER_ROUND]:
             if self.stopped:
@@ -213,6 +309,10 @@ class HymnHuntEngine:
             hits = search_internet_archive(hymn, language)
             time.sleep(REQUEST_PAUSE)
             hits += search_google_books(hymn, language, language_code)
+            time.sleep(REQUEST_PAUSE)
+            hits += search_hathitrust(hymn, language)
+            time.sleep(REQUEST_PAUSE)
+            hits += search_worldcat(hymn, language)
             time.sleep(REQUEST_PAUSE)
             self.hymns_searched += 1
             if hits:
@@ -319,7 +419,7 @@ class HymnHuntEngine:
     def _update_hunt_log(self, folder: Path, total_hymns: int) -> None:
         log_path = folder / "HUNT_LOG.md"
         today = datetime.now().strftime("%Y-%m-%d")
-        row = f"| {today} | {self.hymns_searched}/{total_hymns} | {self.leads_found} | archive.org + Google Books |"
+        row = f"| {today} | {self.hymns_searched}/{total_hymns} | {self.leads_found} | archive.org + Google Books + HathiTrust + WorldCat |"
         header = (
             f"# {self.study_id} Hunt Log\n\n"
             "Bot updates this after each hunt round. Angela can ignore unless auditing coverage.\n\n"
