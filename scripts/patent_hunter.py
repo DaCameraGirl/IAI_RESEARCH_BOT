@@ -790,103 +790,27 @@ Notes:
                 written += 1
                 self.log(f"  Product: {domain} snapshot ({item['date']})", "info")
         
-        # Wikipedia results
-        for item in results.get("wikipedia", [])[:10]:
-            if is_burned(item["title"], burned)[0]:
+        # MusicBrainz results (recordings - perfect for hymns)
+        for item in results.get("musicbrainz", [])[:10]:
+            if is_burned(item["recording_id"], burned)[0]:
                 continue
             safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
-            path = cand_dir / f"PRODUCT_wikipedia_{safe_title}_RWS_format.txt"
-            content = self._draft_product_candidate(item, "Wikipedia", critical)
+            path = cand_dir / f"MUSIC_musicbrainz_{safe_title}_RWS_format.txt"
+            content = self._draft_music_candidate(item, "MusicBrainz", critical)
             path.write_text(content, encoding="utf-8")
             written += 1
-            self.log(f"  Product: {item['title'][:50]} (Wikipedia {item['last_edited']})", "info")
+            self.log(f"  Music: {item['title'][:50]} by {item['artist']} ({item['release_date']})", "info")
         
-        # Google Custom Search results
-        for item in results.get("google", [])[:15]:
+        # Discogs results (album releases)
+        for item in results.get("discogs", [])[:10]:
             if is_burned(item["url"], burned)[0]:
                 continue
             safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
-            path = cand_dir / f"PRODUCT_google_{safe_title}_RWS_format.txt"
-            content = self._draft_product_candidate(item, "Google Search", critical)
+            path = cand_dir / f"MUSIC_discogs_{safe_title}_RWS_format.txt"
+            content = self._draft_music_candidate(item, "Discogs", critical)
             path.write_text(content, encoding="utf-8")
             written += 1
-            self.log(f"  Product: {item['title'][:50]} (Google)", "info")
-        
-        # Bing Search results
-        for item in results.get("bing", [])[:15]:
-            if is_burned(item["url"], burned)[0]:
-                continue
-            safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
-            path = cand_dir / f"PRODUCT_bing_{safe_title}_RWS_format.txt"
-
-    def _draft_academic_candidate(self, item: dict, source: str, critical: str) -> str:
-        """Draft an academic paper candidate in RWS format."""
-        lines = [
-            "Type: NPL / Academic Paper",
-            f"Source: {source}",
-            f"Title: {item.get('title', 'Unknown')}",
-            f"Authors: {item.get('authors', 'Unknown')}",
-            f"DOI: {item.get('doi', 'N/A')}",
-            f"URL: {item.get('url', 'N/A')}",
-            f"Date: {item.get('year', item.get('date', 'unknown'))}",
-            f"Critical Date: ≤ {critical}",
-            "",
-            "Status: UNVERIFIED — manually review paper, verify date, extract technical details",
-            "",
-            "Abstract:",
-            item.get("abstract", "No abstract available")[:300],
-            "",
-            "Next Steps:",
-            "1. Visit URL/DOI and download PDF",
-            "2. Confirm publication date is before critical date",
-            "3. Read full text and map to study requirements",
-            "4. Extract relevant technical specifications",
-            "5. Take screenshots of key figures/tables",
-            "6. If valid, format as proper RWS NPL submission",
-            "",
-            f"Hunt engine {datetime.now().strftime('%Y-%m-%d %H:%M')}",
-        ]
-        return "\n".join(lines)
-
-            content = self._draft_product_candidate(item, "Bing Search", critical)
-            path.write_text(content, encoding="utf-8")
-            written += 1
-            self.log(f"  Product: {item['title'][:50]} (Bing)", "info")
-        
-        # DuckDuckGo results
-        for item in results.get("duckduckgo", [])[:10]:
-            if is_burned(item["url"], burned)[0]:
-                continue
-            safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
-            path = cand_dir / f"PRODUCT_duckduckgo_{safe_title}_RWS_format.txt"
-            content = self._draft_product_candidate(item, "DuckDuckGo", critical)
-            path.write_text(content, encoding="utf-8")
-            written += 1
-            self.log(f"  Product: {item['title'][:50]} (DuckDuckGo)", "info")
-        
-        # Semantic Scholar results
-        for item in results.get("semantic_scholar", [])[:10]:
-            doi = item.get("doi", "")
-            if doi and is_burned(doi, burned)[0]:
-                continue
-            safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
-            path = cand_dir / f"NPL_semanticscholar_{safe_title}_RWS_format.txt"
-            content = self._draft_academic_candidate(item, "Semantic Scholar", critical)
-            path.write_text(content, encoding="utf-8")
-            written += 1
-            self.log(f"  Academic: {item['title'][:50]} (Semantic Scholar {item['year']})", "info")
-        
-        # OpenAlex results
-        for item in results.get("openalex", [])[:10]:
-            doi = item.get("doi", "")
-            if doi and is_burned(doi, burned)[0]:
-                continue
-            safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
-            path = cand_dir / f"NPL_openalex_{safe_title}_RWS_format.txt"
-            content = self._draft_academic_candidate(item, "OpenAlex", critical)
-            path.write_text(content, encoding="utf-8")
-            written += 1
-            self.log(f"  Academic: {item['title'][:50]} (OpenAlex {item['date']})", "info")
+            self.log(f"  Music: {item['title'][:50]} ({item['year']}, {item['format']})", "info")
         
         return written
 
@@ -914,6 +838,46 @@ Notes:
             "6. If valid, format as proper RWS submission with screenshots",
             "",
             f"Hunt engine {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+
+    def _draft_music_candidate(self, item: dict, source: str, critical: str) -> str:
+        """Draft a music recording candidate in RWS format (for hymn research)."""
+        lines = [
+            "Type: Music Recording / NPL",
+            f"Source: {source}",
+            f"Title: {item.get('title', 'Unknown')}",
+            f"Artist: {item.get('artist', 'Unknown')}",
+            f"URL: {item.get('url', 'N/A')}",
+            f"Release Date: {item.get('release_date', item.get('year', 'unknown'))}",
+            f"Critical Date: ≤ {critical}",
+            "",
+        ]
+        
+        # Add source-specific details
+        if source == "MusicBrainz":
+            lines.append(f"Recording ID: {item.get('recording_id', 'N/A')}")
+        elif source == "Discogs":
+            lines.extend([
+                f"Format: {item.get('format', 'Unknown')}",
+                f"Label: {item.get('label', 'Unknown')}",
+            ])
+        
+        lines.extend([
+            "",
+            "Status: UNVERIFIED — manually review recording, verify release date, confirm hymn matches study",
+            "",
+            "Next Steps:",
+            "1. Visit URL and listen to recording (if available)",
+            "2. Confirm release date is before critical date",
+            "3. Verify hymn title and language match study requirements",
+            "4. Check for lyrics/sheet music in description or linked resources",
+            "5. Take screenshots of recording metadata (title, artist, date)",
+            "6. If valid, format as proper RWS submission with evidence",
+            "",
+            f"Hunt engine {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        ])
+        return "\n".join(lines)
+
+
         ]
         return "\n".join(lines)
 

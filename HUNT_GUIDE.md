@@ -15,7 +15,7 @@ Your bot now runs **8-lane deep hunts** including product evidence search:
 ### Non-Patent Literature (L5)
 - **L5**: NPL Crossref (academic papers pre-dating critical date)
 
-### Product Evidence (L7) - NEW! (10 Sources)
+### Product Evidence (L7) - NEW! (11 Sources)
 - **Archive.org**: Product manuals, catalogs, datasheets
 - **YouTube**: Teardown/repair videos (requires YOUTUBE_API_KEY)
 - **Reddit**: Product discussions with photos (requires REDDIT_API_KEY)
@@ -26,6 +26,8 @@ Your bot now runs **8-lane deep hunts** including product evidence search:
 - **DuckDuckGo**: Instant answers (no API key needed)
 - **Semantic Scholar**: Academic papers with citations
 - **OpenAlex**: Academic papers (better coverage than Crossref)
+- **MusicBrainz**: Music recordings with release dates (no API key needed) - Perfect for hymn research!
+- **Discogs**: Album releases with formats and labels (requires DISCOGS_API_KEY)
 
 ### Known Citation Mining (L6)
 - **L6**: Backward cites from all burned patents (finds NEW art via old seeds)
@@ -137,8 +139,20 @@ Next Steps:
    - No setup required - works out of the box
    - For higher limits: https://www.semanticscholar.org/product/api
 
-**Without API keys:** Bot searches 5 sources (Archive.org, Wayback, Wikipedia, DuckDuckGo, OpenAlex)
-**With all API keys:** Bot searches 10 sources (adds YouTube, Reddit, Google, Bing, Semantic Scholar)
+6. **MusicBrainz** (No API key needed! Perfect for hymn research)
+   - No setup required - works out of the box
+   - Searches music recordings with release dates
+   - Ideal for finding hymn recordings in different languages
+   - API docs: https://musicbrainz.org/doc/MusicBrainz_API
+
+7. **Discogs** (Free API key, 60 requests/minute)
+   - Get key: https://www.discogs.com/settings/developers → "Generate new token"
+   - Set: `setx DISCOGS_API_KEY "your_token_here"`
+   - Searches album releases with formats (vinyl, CD, cassette) and labels
+   - Great for finding hymnal albums and historical recordings
+
+**Without API keys:** Bot searches 8 sources (Archive.org, Wayback, Wikipedia, DuckDuckGo, OpenAlex, Semantic Scholar, MusicBrainz, YouTube if key set)
+**With all API keys:** Bot searches 11 sources (adds Reddit, Google, Bing, Discogs)
 
 ---
 

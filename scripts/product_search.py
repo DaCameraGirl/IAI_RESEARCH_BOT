@@ -4,6 +4,7 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import urllib.error
@@ -279,6 +280,8 @@ def search_product_evidence(
         "duckduckgo": [],
         "semantic_scholar": [],
         "openalex": [],
+        "musicbrainz": [],
+        "discogs": [],
     }
     
     # Build search queries
@@ -418,6 +421,25 @@ def search_product_evidence(
         results["openalex"].extend(hits)
         if len(results["openalex"]) >= max_per_source * 2:
             break
+    
+    # MusicBrainz (recordings - perfect for hymns, no API key needed)
+    print("Searching MusicBrainz for recordings...")
+    for query in queries[:3]:
+        hits = search_musicbrainz(query, before_date=before_date, max_results=max_per_source)
+        results["musicbrainz"].extend(hits)
+        if len(results["musicbrainz"]) >= max_per_source * 2:
+            break
+    
+    # Discogs (album releases - if API key available)
+    discogs_api_key = os.environ.get("DISCOGS_API_KEY")
+    if discogs_api_key:
+        print("Searching Discogs for album releases...")
+        before_year = int(before_date[:4])
+        for query in queries[:3]:
+            hits = search_discogs(query, before_year=before_year, max_results=max_per_source)
+            results["discogs"].extend(hits)
+            if len(results["discogs"]) >= max_per_source * 2:
+                break
     
     return results
 
@@ -717,7 +739,134 @@ def search_openalex(
     return results
 
 
-if __name__ == "__main__":
+def search_musicbrainz(
+    query: str,
+    before_date: str | None = None,
+    max_results: int = 10,
+) -> list[dict[str, str]]:
+    """
+    Search MusicBrainz for recordings (perfect for hymns, no API key needed).
+    
+    Args:
+        query: Search query (e.g., "Amazing Grace Cebuano")
+        before_date: ISO date string (YYYY-MM-DD) for release date filter
+        max_results: Maximum results
+    
+    Returns:
+        List of dicts with keys: title, artist, url, release_date, recording_id
+    """
+    # MusicBrainz API: https://musicbrainz.org/doc/MusicBrainz_API
+    q = urllib.parse.quote(query)
+    url = f"https://musicbrainz.org/ws/2/recording/?query={q}&limit={max_results}&fmt=json"
+    
+    headers = {
+        "User-Agent": f"{USER_AGENT}; mailto:research@example.com"
+    }
+    
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+        print(f"MusicBrainz fetch error: {e}")
+        return []
+    
+    results = []
+    for recording in data.get("recordings", []):
+        # Get first release date
+        releases = recording.get("releases", [])
+        if not releases:
+            continue
+        
+        release_date = releases[0].get("date", "unknown")
+        
+        # Filter by date if specified
+        if before_date and release_date != "unknown":
+            try:
+                if release_date > before_date:
+                    continue
+            except:
+                pass
+        
+        # Get artist name
+        artist_credit = recording.get("artist-credit", [])
+        artist = artist_credit[0].get("name", "Unknown") if artist_credit else "Unknown"
+        
+        recording_id = recording.get("id", "")
+        
+        results.append({
+            "title": recording.get("title", "Unknown"),
+            "artist": artist,
+            "url": f"https://musicbrainz.org/recording/{recording_id}",
+            "release_date": release_date,
+            "recording_id": recording_id,
+        })
+    
+    return results
+
+
+def search_discogs(
+    query: str,
+    before_year: int | None = None,
+    max_results: int = 10,
+) -> list[dict[str, str]]:
+    """
+    Search Discogs for album releases (requires DISCOGS_API_KEY).
+    
+    Args:
+        query: Search query (e.g., "Amazing Grace hymnal")
+        before_year: Filter releases before this year
+        max_results: Maximum results
+    
+    Returns:
+        List of dicts with keys: title, artist, url, year, format, label
+    """
+    api_key = os.environ.get("DISCOGS_API_KEY")
+    if not api_key:
+        print("Discogs search requires DISCOGS_API_KEY environment variable")
+        return []
+    
+    # Discogs API: https://www.discogs.com/developers
+    q = urllib.parse.quote(query)
+    url = f"https://api.discogs.com/database/search?q={q}&type=release&per_page={max_results}"
+    
+    headers = {
+        "User-Agent": USER_AGENT,
+        "Authorization": f"Discogs token={api_key}"
+    }
+    
+    try:
+        req = urllib.request.Request(url, headers=headers)
+        with urllib.request.urlopen(req, timeout=20) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except (urllib.error.URLError, TimeoutError, json.JSONDecodeError) as e:
+        print(f"Discogs fetch error: {e}")
+        return []
+    
+    results = []
+    for release in data.get("results", []):
+        year = release.get("year", "")
+        
+        # Filter by year if specified
+        if before_year and year:
+            try:
+                if int(year) >= before_year:
+                    continue
+            except:
+                pass
+        
+        results.append({
+            "title": release.get("title", "Unknown"),
+            "artist": ", ".join(release.get("artist", [])) if isinstance(release.get("artist"), list) else release.get("artist", "Unknown"),
+            "url": release.get("uri", ""),
+            "year": str(year) if year else "unknown",
+            "format": ", ".join(release.get("format", [])) if release.get("format") else "Unknown",
+            "label": ", ".join(release.get("label", [])) if release.get("label") else "Unknown",
+        })
+    
+    return results
+
+
     # Test searches
     print("Testing Archive.org search...")
     archive_results = search_archive_org("blender manual offset blade", max_results=5)

@@ -1,0 +1,7 @@
+Type: Hymn translation lead
+Hymn: Still, Still, Still
+Language: Cebuano
+Source: archive.org
+Title: Rock Pop Folk Songs et cetera. Vol. 2/3 - 2.800 Songs (pvg)
+URL: https://archive.org/details/rock-pop-folk-lieder-et-cetera.-vol.-2-2.-2.800-songs-pvg
+Status: UNVERIFIED — read the source and confirm translator/date/copyright before submitting; RWS requires a real screenshot attachment

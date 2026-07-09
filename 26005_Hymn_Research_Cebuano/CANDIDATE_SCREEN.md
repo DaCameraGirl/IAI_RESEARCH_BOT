@@ -1,28 +1,19 @@
-# 26005 Candidate Screen
+# Candidate Screen — updated 2026-07-09
 
-Use this before surfacing any Cebuano hymn translation.
+Inspected: 125 · Hymns with leads: 2 · Total per-hymn candidates: 2 · Hymnal sources: 0
 
-## Submit-Ready Standard
+## Candidate hymnal sources (search WITHIN these for the full hymn list — highest-value lead type, verified to beat per-hymn search)
 
-A candidate is worth showing only if it has:
+- (none found — try broadening the language name or check manually)
 
-- one listed hymn clearly matched to a Cebuano translation;
-- a public source or source Angela can actually access;
-- enough source context to identify where the translation was found;
-- evidence suitable for a PDF attachment and highlighting;
-- no obvious duplicate against prior submissions or same-source repeats.
+## Per-hymn leads found this round (unverified — read source before submitting)
 
-## Copyright Handling
+### Amazing Grace
+- [archive.org] Rock Pop Folk Songs et cetera. Vol. 2/3 - 2.800 Songs (pvg) — https://archive.org/details/rock-pop-folk-lieder-et-cetera.-vol.-2-2.-2.800-songs-pvg
 
-Do not paste full hymn lyrics into chat or local summary files unless the
-source is clearly public domain and the specific translation is verified
-as public domain. For modern or uncertain translations, record the title,
-source, location/page/time marker, and short identifying snippets only.
+### Still, Still, Still
+- [archive.org] Rock Pop Folk Songs et cetera. Vol. 2/3 - 2.800 Songs (pvg) — https://archive.org/details/rock-pop-folk-lieder-et-cetera.-vol.-2-2.-2.800-songs-pvg
 
-## Priority Queue
+## HOLD (rank 1 — verify before surfacing)
 
-- (populate from `HymnResearch_English.zip` list once downloaded)
-
-## Burned / Unverified Leads
-
-- (none yet)
+- (none)
