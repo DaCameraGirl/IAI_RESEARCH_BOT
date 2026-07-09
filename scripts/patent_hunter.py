@@ -839,6 +839,8 @@ Notes:
             "6. If valid, format as proper RWS submission with screenshots",
             "",
             f"Hunt engine {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        ]
+        return "\n".join(lines)
 
     def _draft_music_candidate(self, item: dict, source: str, critical: str) -> str:
         """Draft a music recording candidate in RWS format (for hymn research)."""
@@ -876,10 +878,6 @@ Notes:
             "",
             f"Hunt engine {datetime.now().strftime('%Y-%m-%d %H:%M')}",
         ])
-        return "\n".join(lines)
-
-
-        ]
         return "\n".join(lines)
 
     def _rec_dict(self, rec: PatentRecord) -> dict:
