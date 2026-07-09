@@ -13,13 +13,14 @@ from config.study_loader import StudyLoader
 from ai_engine.hunt_orchestrator import HuntOrchestrator, HuntConfig
 
 
-def hunt_study(study_id: str, workspace_root: Path = Path(".")):
+def hunt_study(study_id: str, workspace_root: Path = Path("."), round_num: int = 1):
     """
     Hunt for prior art using study-specific search strategy
     
     Args:
         study_id: Study ID (e.g., "26052")
         workspace_root: Root directory of workspace
+        round_num: Hunt round number (default: 1)
     """
     print(f"\n{'='*60}")
     print(f"Starting hunt for study {study_id}")
@@ -184,13 +185,19 @@ if __name__ == "__main__":
         default=Path("."),
         help="Workspace root directory"
     )
+    parser.add_argument(
+        "--round",
+        type=int,
+        default=1,
+        help="Hunt round number (default: 1)"
+    )
     
     args = parser.parse_args()
     
     if args.list:
         show_all_studies(args.workspace)
     elif args.study_id:
-        hunt_study(args.study_id, args.workspace)
+        hunt_study(args.study_id, args.workspace, args.round)
     else:
         parser.print_help()
         print("\nExamples:")

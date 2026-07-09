@@ -243,16 +243,31 @@ class RWSResearchApp(ctk.CTk):
         actions.grid(row=0, column=0, sticky="ew", padx=24, pady=(0, 8))
         actions.grid_columnconfigure(0, weight=1)
 
+        hunt_btns = ctk.CTkFrame(actions, fg_color="transparent")
+        hunt_btns.grid(row=0, column=0, sticky="ew")
+        hunt_btns.grid_columnconfigure(0, weight=1)
+        
         self.hunt_btn = ctk.CTkButton(
-            actions,
-            text="⚡  Copy Hunt Command",
+            hunt_btns,
+            text="⚡  Run Hunt Now",
             height=48,
             font=ctk.CTkFont(size=15, weight="bold"),
             fg_color=ACCENT,
             hover_color="#7C3AED",
-            command=self.copy_hunt_command,
+            command=self.run_hunt_now,
         )
         self.hunt_btn.grid(row=0, column=0, sticky="ew", padx=(0, 8))
+        
+        self.copy_hunt_btn = ctk.CTkButton(
+            hunt_btns,
+            text="📋 Copy Command",
+            height=48,
+            font=ctk.CTkFont(size=13),
+            fg_color=SURFACE_ALT,
+            hover_color="#2D3344",
+            command=self.copy_hunt_command,
+        )
+        self.copy_hunt_btn.grid(row=0, column=1, sticky="ew")
 
         btn_row = ctk.CTkFrame(actions, fg_color="transparent")
         btn_row.grid(row=0, column=1, sticky="e")
@@ -633,6 +648,26 @@ class RWSResearchApp(ctk.CTk):
             f"{'─' * 60}\n\n"
         )
         self._set_textbox(self.cand_detail, header + cand["text"])
+
+    def run_hunt_now(self) -> None:
+        sid = self.selected_id
+        if is_blocked(sid):
+            self.toast("Study is blocked — paste brief first", "#FCA5A5")
+            return
+        
+        rounds = self.state_data["studies"][sid].get("rounds_completed", 0)
+        script = REPO / "scripts" / "hunt_with_strategy.py"
+        
+        self.toast(f"🔍 Starting hunt round {rounds + 1} for {sid}...", "#A78BFA")
+        
+        # Run hunt in background
+        subprocess.Popen(
+            [sys.executable, str(script), sid, "--round", str(rounds + 1)],
+            cwd=str(REPO),
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
+        )
+        
+        self.toast(f"Hunt running in background — check candidates tab in a few minutes", "#86EFAC")
 
     def copy_hunt_command(self) -> None:
         sid = self.selected_id
