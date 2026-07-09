@@ -1,0 +1,75 @@
+Study ID
+25974
+Category
+Chemistry
+Research Type
+Invalidity
+Expiration Date
+15 July 2026
+
+This Study relates to a tyrosinase inhibitor, specifically oximidol.
+
+https://azuksaopblb01.blob.core.windows.net/studydocs/d73d55c4ef1df02fb8523946f4f5d859_25974-Screenshot_2026-06-16_at_2.01.30_PM.png
+ 
+General Chemistry Organic Chemistry
+ Leads
+Added on 07 July 2026
+Please note that we are extending the study a week (new end date:July 15) to focus on the following:
+
+thiamidol in combination with Isopropyl Lauroyl Sarcosinate, or an explicit disclosure that Isopropyl Lauroyl Sarcosinate is a good solvent for skin whitening agents.
+
+We are particularly interested in dissertations, conference abstracts and posters, and the like.
+Thank you.
+
+Added on 01 July 2026
+Please focus your efforts on finding a combination of Thiamidol with Isopropyl Lauroyl Sarcosinate (preferably before August 18 2023) for Research Requirement 3. We are especially interested in product literature and products from Beiersdorf. Thank you!
+
+Added on 24 June 2026
+Please note that we would like to see the exact molecule as shown in the Study page for Requirements 1 and 2, but for Research Requirement 3, the scope could be broader , e.g., alkylamidothiazoles instead of Oximidol, as long as the solvent is exactly the same.
+Thank you.
+
+ Description
+This Study is directed to previously unidentified prior art references, including patent and non-patent literature.
+
+The objective of this Study is to find a disclosure of the following molecule:
+
+       Screenshot_2026-06-16_at_2.01.30_PM
+
+Common Name: Oximidol 
+
+INCI Name: METHYLOXETANECARBAMIDO THIAZOLYL RESORCINOL 
+
+CAS No.: 3081328-14-2 
+
+Oximidol is a tyrosinase inhibitor compound, which may also have been known as KT-939, KWhite 939, or NexaWhite 939 and is used in skin care compositions for brightening and spot-correcting.  The compound reduces melanin production by inhibiting tyrosinase, and can be used to reduce dark spots or uneven skin tones . This can be used as a cosmetic replacement for older brightening agents such as arbutin, kojic acid, niacinamide, hydroquinone, and thiamidol.  It may also be used for antioxidant and anti-inflammatory effects.
+
+It may be present in anti-freckle creams; hair care preparations; skin conditioning creams; sunscreen cream; body lotion; skin whitening creams; teeth whitening preparations; age spot reducing creams; and the like.
+
+We are also interested in seeing an association of the molecule Oximidol with Isopropyl Lauroyl Sarcosinate (solvent to solubilize the molecule) with a priority date before August 18 2023?
+
+Please see Study Patent for additional details.
+
+ Study Patents
+WO2025201324
+CPC Class: A61K
+Download
+ Research Requirements 
+Latest Date for Responses
+26 March 2024 
+Relevant Patent Dates:
+US Patent Date
+Publication Date
+US Application Date
+Publication Date
+EP Date
+Publication Date
+Other Patent Authorities
+Publication Date
+1 
+Oximidol (structure as shown above).
+
+2 
+A cosmetic or dermatological formulation comprising oximidol or a structurally similar compound.
+
+3 
+Oximidol with Isopropyl Lauroyl Sarcosinate (preferably before August 18 2023).

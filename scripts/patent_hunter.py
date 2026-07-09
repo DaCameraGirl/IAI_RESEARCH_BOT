@@ -24,6 +24,7 @@ from link_builder import crossref_lookup, patent_links  # noqa: E402
 from patent_search import search_queries  # noqa: E402
 from study_bot import STUDY_META  # noqa: E402
 from study_requirements import ctrl_f_phrases, map_requirements  # noqa: E402
+from product_search import search_product_evidence  # noqa: E402
 
 LogFn = Callable[[str, str], None]  # message, level
 
@@ -496,7 +497,10 @@ class HuntEngine:
         burned_skipped += self._expand_known_citation_seeds(queue, seen, burned)
         self.lanes_done.append("L6")
 
-        self.log(f"L7: Wayback/product — manual pass (log only)", "lane")
+        # L7 — Product evidence search (Archive.org, YouTube, Reddit, Wayback)
+        self.log("L7: Product evidence (Archive.org, YouTube, Reddit, Wayback)", "lane")
+        product_hits = self._hunt_product_evidence(folder, critical, burned)
+        self.log(f"  Product search: {product_hits} candidate sources found", "info")
         self.lanes_done.append("L7")
 
         self.log(
@@ -687,6 +691,133 @@ Notes:
             self.log(f"  NPL lead: {meta['doi']} ({q[:40]})", "info")
             time.sleep(0.3)
         return written
+
+
+    def _hunt_product_evidence(self, folder: Path, critical: str | None, burned: dict[str, str]) -> int:
+        """Search Archive.org, YouTube, Reddit, Wayback for product evidence."""
+        if not critical:
+            return 0
+        
+        # Extract keywords from study metadata
+        meta = STUDY_META[self.study_id]
+        product_keywords = []
+        technical_terms = []
+        
+        # Extract from title and description
+        title_lower = meta["title"].lower()
+        if "blender" in title_lower:
+            product_keywords.extend(["blender", "food processor", "mixer"])
+            technical_terms.extend(["offset blade", "eccentric rotor", "tornado effect", "vortex mixing"])
+        elif "battery" in title_lower or "rechargeable" in title_lower:
+            product_keywords.append("rechargeable")
+        
+        # Add generic terms from synonym queries
+        for q in meta.get("synonym_queries", [])[:5]:
+            terms = q.lower().split()
+            for term in terms:
+                if len(term) > 4 and term not in ["patent", "prior", "device"]:
+                    if term not in technical_terms:
+                        technical_terms.append(term)
+        
+        if not product_keywords:
+            product_keywords = ["product", "device"]
+        
+        # Search product sources
+        try:
+            results = search_product_evidence(
+                product_keywords=product_keywords[:3],
+                technical_terms=technical_terms[:5],
+                before_date=critical,
+                max_per_source=10,
+            )
+        except Exception as e:
+            self.log(f"Product search error: {e}", "warn")
+            return 0
+        
+        # Write candidates
+        cand_dir = folder / "candidates"
+        cand_dir.mkdir(exist_ok=True)
+        written = 0
+        
+        # Archive.org results
+        for item in results.get("archive_org", [])[:15]:
+            if is_burned(item["identifier"], burned)[0]:
+                continue
+            safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
+            path = cand_dir / f"PRODUCT_archive_{safe_title}_RWS_format.txt"
+            content = self._draft_product_candidate(item, "Archive.org", critical)
+            path.write_text(content, encoding="utf-8")
+            written += 1
+            self.log(f"  Product: {item['title'][:50]} (Archive.org {item['year']})", "info")
+        
+        # YouTube results
+        for item in results.get("youtube", [])[:10]:
+            if is_burned(item["video_id"], burned)[0]:
+                continue
+            safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
+            path = cand_dir / f"PRODUCT_youtube_{safe_title}_RWS_format.txt"
+            content = self._draft_product_candidate(item, "YouTube", critical)
+            path.write_text(content, encoding="utf-8")
+            written += 1
+            self.log(f"  Product: {item['title'][:50]} (YouTube {item['published_date']})", "info")
+        
+        # Reddit results
+        for item in results.get("reddit", [])[:10]:
+            if is_burned(item["url"], burned)[0]:
+                continue
+            safe_title = re.sub(r"[^\w]+", "_", item["title"][:40])
+            path = cand_dir / f"PRODUCT_reddit_{safe_title}_RWS_format.txt"
+            content = self._draft_product_candidate(item, "Reddit", critical)
+            path.write_text(content, encoding="utf-8")
+            written += 1
+            self.log(f"  Product: {item['title'][:50]} (Reddit {item['created_date']})", "info")
+        
+        # Wayback results (sample only - too many snapshots)
+        wayback_items = results.get("wayback", [])
+        if wayback_items:
+            # Group by domain and take earliest snapshot per domain
+            by_domain = {}
+            for item in wayback_items:
+                domain = item["original_url"].split("/")[0]
+                if domain not in by_domain or item["date"] < by_domain[domain]["date"]:
+                    by_domain[domain] = item
+            
+            for domain, item in list(by_domain.items())[:5]:
+                safe_domain = re.sub(r"[^\w]+", "_", domain)
+                path = cand_dir / f"PRODUCT_wayback_{safe_domain}_{item['date']}_RWS_format.txt"
+                content = self._draft_product_candidate(item, "Wayback Machine", critical)
+                path.write_text(content, encoding="utf-8")
+                written += 1
+                self.log(f"  Product: {domain} snapshot ({item['date']})", "info")
+        
+        return written
+
+    def _draft_product_candidate(self, item: dict, source: str, critical: str) -> str:
+        """Draft a product evidence candidate in RWS format."""
+        lines = [
+            "Type: Product Evidence / NPL",
+            f"Source: {source}",
+            f"Title: {item.get('title', 'Unknown')}",
+            f"URL: {item.get('url', 'N/A')}",
+            f"Date: {item.get('year', item.get('date', item.get('published_date', item.get('created_date', 'unknown'))))}",
+            f"Critical Date: ≤ {critical}",
+            "",
+            "Status: UNVERIFIED — manually review source, verify date, extract technical details, take screenshots",
+            "",
+            "Description:",
+            item.get("description", item.get("selftext", "No description available"))[:300],
+            "",
+            "Next Steps:",
+            "1. Visit URL and verify content is accessible",
+            "2. Confirm publication/creation date is before critical date",
+            "3. Extract technical specifications (blade offset, dimensions, etc.)",
+            "4. Take screenshots showing relevant technical details",
+            "5. Map to study requirements",
+            "6. If valid, format as proper RWS submission with screenshots",
+            "",
+            f"Hunt engine {datetime.now().strftime('%Y-%m-%d %H:%M')}",
+        ]
+        return "\n".join(lines)
 
     def _rec_dict(self, rec: PatentRecord) -> dict:
         return {

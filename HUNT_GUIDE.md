@@ -1,13 +1,114 @@
-# Automated Hunt Guide - Search High and Low
+# Automated Hunt Guide - Deep Hunt with Product Evidence
 
-Your bot now searches **unconventional sources** people never think of, with **strict filtering**:
-- ✅ **NO known citations** - automatically filtered from your study's known_citations.csv
-- ✅ **NO paywalls** - only open access documents
-- ✅ **9 unconventional sources** - Wayback, FCC, PTAB, USENET, universities, distributors, etc.
+Your bot now runs **8-lane deep hunts** including product evidence search:
+
+## Hunt Lanes (L1-L7)
+
+### Patent Citation Lanes (L1-L4b)
+- **L1**: Study patent backward citations (200 patents)
+- **L2**: 2-hop citation graph (100 parents → 40 cites each)
+- **L2b**: 3-hop citation graph (50 deeper hops)
+- **L3**: Assignee sweep (Google Patents search)
+- **L4**: Synonym lattice (20+ keyword queries)
+- **L4b**: CPC/classification searches
+
+### Non-Patent Literature (L5)
+- **L5**: NPL Crossref (academic papers pre-dating critical date)
+
+### Product Evidence (L7) - NEW!
+- **Archive.org**: Product manuals, catalogs, datasheets
+- **YouTube**: Teardown/repair videos (requires API key)
+- **Reddit**: Product discussions with photos
+- **Wayback Machine**: Archived manufacturer websites (2010-2019)
+
+### Known Citation Mining (L6)
+- **L6**: Backward cites from all burned patents (finds NEW art via old seeds)
+
+## Filtering Rules
+- ✅ **NO known citations** - automatically filtered from known_citations.csv
+- ✅ **NO paywalls** - only open access or school-accessible documents
+- ✅ **Date filtering** - only documents before critical date
 
 ---
 
-## Quick Start - Automated Hunt
+## Product Evidence Search (L7)
+
+The bot now searches **real-world product sources** where actual products exist:
+
+### What Gets Searched
+
+1. **Archive.org** - Product manuals, catalogs, technical documentation
+   - Example: "blender manual offset blade" → finds old Vitamix/Blendtec manuals
+   - Searches: texts, movies (product demos), audio (product reviews)
+
+2. **YouTube** - Teardown and repair videos (requires YOUTUBE_API_KEY)
+   - Example: "blender teardown repair" → finds disassembly videos showing blade design
+   - Filters: Only videos published before critical date
+
+3. **Reddit** - Product discussions with photos and technical details
+   - Example: "blender blade offset" in r/BuyItForLife, r/engineering
+   - Searches: Pushshift API for historical posts before critical date
+
+4. **Wayback Machine** - Archived manufacturer websites
+   - Example: vitamix.com snapshots from 2010-2019
+   - Finds: Old product pages, datasheets, press releases
+
+### How It Works
+
+```python
+# Automatically extracts keywords from study
+product_keywords = ["blender", "food processor", "mixer"]
+technical_terms = ["offset blade", "eccentric rotor", "tornado effect"]
+
+# Searches all 4 sources
+results = search_product_evidence(
+    product_keywords=product_keywords,
+    technical_terms=technical_terms,
+    before_date="2019-10-28",  # Critical date
+    max_per_source=10
+)
+
+# Writes candidates to: study_folder/candidates/PRODUCT_*.txt
+```
+
+### Output Format
+
+Each product candidate is written as:
+
+```
+Type: Product Evidence / NPL
+Source: Archive.org
+Title: Vitamix Professional Series 750 Manual
+URL: https://archive.org/details/vitamix_750_manual
+Date: 2015
+Critical Date: ≤ 2019-10-28
+
+Status: UNVERIFIED — manually review source, verify date, extract technical details, take screenshots
+
+Description:
+Product manual showing blade assembly with offset design...
+
+Next Steps:
+1. Visit URL and verify content is accessible
+2. Confirm publication/creation date is before critical date
+3. Extract technical specifications (blade offset, dimensions, etc.)
+4. Take screenshots showing relevant technical details
+5. Map to study requirements
+6. If valid, format as proper RWS submission with screenshots
+```
+
+### Setup (Optional)
+
+For YouTube search, set environment variable:
+```bash
+set YOUTUBE_API_KEY=your_api_key_here
+```
+
+Without API key, YouTube search is skipped (other sources still work).
+
+---
+
+## Quick Start - Run Deep Hunt
 
 ### 1. Configure Your Hunt
 

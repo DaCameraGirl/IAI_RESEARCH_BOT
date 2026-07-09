@@ -1,6 +1,6 @@
 {
   "mode": "one_at_a_time",
-  "current_study": "26052",
+  "current_study": "25974",
   "queue": [
     "26052",
     "25974",
@@ -11,16 +11,16 @@
   "studies": {
     "26052": {
       "folder": "26052_Rechargeable_Blender_Offset_Blades",
-      "status": "active",
-      "rounds_completed": 0,
+      "status": "done",
+      "rounds_completed": 2,
       "candidates_found": 0,
       "submissions_made": 0,
       "lanes_complete": []
     },
     "25974": {
       "folder": "25974_Oximidol",
-      "status": "queued",
-      "rounds_completed": 0,
+      "status": "active",
+      "rounds_completed": 1,
       "candidates_found": 0,
       "submissions_made": 0,
       "lanes_complete": []
