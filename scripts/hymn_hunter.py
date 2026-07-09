@@ -125,7 +125,27 @@ def search_internet_archive(hymn_title: str, language: str, rows: int = 5) -> li
         "German": "Lied OR Gesangbuch",
         "Chinese": "赞美诗 OR 圣诗",
         "Japanese": "賛美歌",
-        "Korean": "찬송가"
+        "Korean": "찬송가",
+        "Hindi": "भजन OR स्तुति",
+        "Tamil": "பாடல் OR துதி",
+        "Telugu": "కీర్తన OR స్తుతి",
+        "Bengali": "গান OR স্তুতি",
+        "Marathi": "भजन OR स्तुति",
+        "Tagalog": "awit OR himno",
+        "Vietnamese": "bài hát OR thánh ca",
+        "Thai": "เพลง OR สวด",
+        "Indonesian": "lagu OR himne",
+        "Malay": "lagu OR himne",
+        "Swahili": "wimbo OR sifa",
+        "Arabic": "ترنيمة OR تسبيح",
+        "Hebrew": "שיר OR תהילה",
+        "Polish": "pieśń OR hymn",
+        "Ukrainian": "пісня OR гімн",
+        "Dutch": "lied OR hymne",
+        "Swedish": "sång OR psalm",
+        "Norwegian": "sang OR salme",
+        "Danish": "sang OR salme",
+        "Finnish": "laulu OR virsi"
     }
     extra = lang_keywords.get(language, "")
     if extra:
@@ -148,7 +168,27 @@ def search_google_books(hymn_title: str, language: str, language_code: str | Non
         "German": "Lied OR Gesangbuch",
         "Chinese": "赞美诗 OR 圣诗",
         "Japanese": "賛美歌",
-        "Korean": "찬송가"
+        "Korean": "찬송가",
+        "Hindi": "भजन OR स्तुति",
+        "Tamil": "பாடல் OR துதி",
+        "Telugu": "కీర్తన OR స్తుతి",
+        "Bengali": "গান OR স্তুতি",
+        "Marathi": "भजन OR स्तुति",
+        "Tagalog": "awit OR himno",
+        "Vietnamese": "bài hát OR thánh ca",
+        "Thai": "เพลง OR สวด",
+        "Indonesian": "lagu OR himne",
+        "Malay": "lagu OR himne",
+        "Swahili": "wimbo OR sifa",
+        "Arabic": "ترنيمة OR تسبيح",
+        "Hebrew": "שיר OR תהילה",
+        "Polish": "pieśń OR hymn",
+        "Ukrainian": "пісня OR гімн",
+        "Dutch": "lied OR hymne",
+        "Swedish": "sång OR psalm",
+        "Norwegian": "sang OR salme",
+        "Danish": "sang OR salme",
+        "Finnish": "laulu OR virsi"
     }
     extra = lang_keywords.get(language, "hymnal")
     query = f'"{hymn_title}" {language} {extra}'
@@ -190,7 +230,27 @@ def search_hathitrust(hymn_title: str, language: str, rows: int = 5) -> list[dic
         "German": "Lied Gesangbuch",
         "Chinese": "赞美诗",
         "Japanese": "賛美歌",
-        "Korean": "찬송가"
+        "Korean": "찬송가",
+        "Hindi": "भजन स्तुति",
+        "Tamil": "பாடல் துதி",
+        "Telugu": "కీర్తన స్తుతి",
+        "Bengali": "গান স্তুতি",
+        "Marathi": "भजन स्तुति",
+        "Tagalog": "awit himno",
+        "Vietnamese": "bài hát thánh ca",
+        "Thai": "เพลง สวด",
+        "Indonesian": "lagu himne",
+        "Malay": "lagu himne",
+        "Swahili": "wimbo sifa",
+        "Arabic": "ترنيمة تسبيح",
+        "Hebrew": "שיר תהילה",
+        "Polish": "pieśń hymn",
+        "Ukrainian": "пісня гімн",
+        "Dutch": "lied hymne",
+        "Swedish": "sång psalm",
+        "Norwegian": "sang salme",
+        "Danish": "sang salme",
+        "Finnish": "laulu virsi"
     }
     extra = lang_keywords.get(language, "hymnal")
     query = f'"{hymn_title}" {extra}'
@@ -230,7 +290,27 @@ def search_worldcat(hymn_title: str, language: str, rows: int = 3) -> list[dict]
         "German": "Lied",
         "Chinese": "赞美诗",
         "Japanese": "賛美歌",
-        "Korean": "찬송가"
+        "Korean": "찬송가",
+        "Hindi": "भजन",
+        "Tamil": "பாடல்",
+        "Telugu": "కీర్తన",
+        "Bengali": "গান",
+        "Marathi": "भजन",
+        "Tagalog": "awit",
+        "Vietnamese": "bài hát",
+        "Thai": "เพลง",
+        "Indonesian": "lagu",
+        "Malay": "lagu",
+        "Swahili": "wimbo",
+        "Arabic": "ترنيمة",
+        "Hebrew": "שיר",
+        "Polish": "pieśń",
+        "Ukrainian": "пісня",
+        "Dutch": "lied",
+        "Swedish": "sång",
+        "Norwegian": "sang",
+        "Danish": "sang",
+        "Finnish": "laulu"
     }
     extra = lang_keywords.get(language, "hymnal")
     query = f'"{hymn_title}" {extra}'

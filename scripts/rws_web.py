@@ -809,7 +809,12 @@ $('addStudyBtn').onclick = async () => {
   }
 };
 $('roundBtn').onclick = async () => { await api('/api/round-done', {method:'POST'}); loadState(); };
-$('advanceBtn').onclick = async () => { await api('/api/advance', {method:'POST'}); selectedStudy = null; loadState(); loadCandidates(); };
+$('advanceBtn').onclick = async () => { 
+  const result = await api('/api/advance', {method:'POST'}); 
+  selectedStudy = result.current; 
+  loadState(); 
+  loadCandidates(); 
+};
 
 $('burnBtn').onclick = async () => {
   const pub = $('burnInput').value.trim();
