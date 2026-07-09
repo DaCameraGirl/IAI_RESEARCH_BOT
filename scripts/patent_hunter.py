@@ -210,10 +210,9 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
 
     rec.ready = (
         not rec.burned
-        and rec.self_rank >= 2
-        and yes_count >= 2
-        and rec.confidence == "high"
-        and priority_yes >= 1
+        and rec.self_rank >= 1
+        and (yes_count >= 1 or maybe_count >= 2)
+        and rec.confidence in ("high", "med")
     )
     return rec
 
