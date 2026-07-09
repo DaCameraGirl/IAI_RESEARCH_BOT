@@ -162,7 +162,7 @@ def _parse_candidates(study_id: str, burned: dict[str, str] | None = None) -> li
                 "doi": doi,
                 "rank": rank,
                 "confidence": conf,
-                "ready": rank >= 2 and conf in ("high", "med") and not burned_hit,
+                "ready": rank >= 1 and conf in ("high", "med") and not burned_hit,
                 "burned": burned_hit,
                 "burn_relation": burn_rel,
                 "text": text,
