@@ -540,8 +540,6 @@ footer {
         </div>
         <div class="actions">
           <button class="btn btn-hunt" id="huntBtn">⚡ Run Deep Hunt</button>
-          <button class="btn btn-ghost" id="roundBtn">Round done</button>
-          <button class="btn btn-ghost" id="advanceBtn">Advance</button>
           <button class="btn btn-stop" id="stopBtn" style="display:none">Stop</button>
         </div>
       </div>
@@ -810,14 +808,6 @@ $('addStudyBtn').onclick = async () => {
     result.textContent = data.error || 'Failed to add study.';
   }
 };
-$('roundBtn').onclick = async () => { await api('/api/round-done', {method:'POST'}); loadState(); };
-$('advanceBtn').onclick = async () => { 
-  const result = await api('/api/advance', {method:'POST'}); 
-  selectedStudy = result.current; 
-  loadState(); 
-  loadCandidates(); 
-};
-
 $('burnBtn').onclick = async () => {
   const pub = $('burnInput').value.trim();
   if (!pub) return;
@@ -967,24 +957,6 @@ class RWSHandler(BaseHTTPRequestHandler):
             if _hunt_engine:
                 _hunt_engine.stop()
             _json_response(self, {"ok": True})
-            return
-
-        if path == "/api/round-done":
-            state = load_state()
-            sid = current_id(state)
-            state["studies"][sid]["rounds_completed"] = (
-                state["studies"][sid].get("rounds_completed", 0) + 1
-            )
-            save_state(state)
-            _json_response(self, {"ok": True, "rounds": state["studies"][sid]["rounds_completed"]})
-            return
-
-        if path == "/api/advance":
-            from study_bot import cmd_advance
-
-            state = load_state()
-            cmd_advance(state)
-            _json_response(self, {"ok": True, "current": current_id(load_state())})
             return
 
         if path == "/api/burn-check":
