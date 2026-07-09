@@ -25,16 +25,13 @@ Select these requirements:
 | 1.7  |  |  |
 | 1.8  |  |  |
 
-Ctrl+F phrases:
+Ctrl+F phrases (verify in PDF before submit):
   - 
   - 
 
-Highlight only this:
+Highlight in PDF:
   - Requirement : 
   - Requirement : 
-
-Do NOT select:
-  - 
 
 Coverage score:  of  priority reqs
 Adversarial note: 
