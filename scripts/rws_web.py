@@ -37,7 +37,7 @@ from study_bot import (  # noqa: E402
 # patent_hunter may not export list_candidates - that's in rws_gui. I'll define here or import from rws_gui logic
 
 PORT = 7842
-BUILD_VERSION = "2026-07-09-ultra-deep-v6"
+BUILD_VERSION = "v1.0 · 2026-07-09-ultra-deep"
 
 _hunt_thread: threading.Thread | None = None
 _hunt_engine: HuntEngine | None = None
@@ -534,7 +534,7 @@ footer {
       <div class="brand-row">
         <img src="/assets/genie-mascot.jpg" class="genie-avatar" id="genieAvatar" alt="Research Genie mascot"/>
         <div>
-          <h1>RWS Research Bot</h1>
+          <h1>RWS Research Bot <span style="font-size:0.4em;color:var(--gold);font-weight:500;letter-spacing:0.05em">v1.0</span></h1>
           <p>Your bottled research genie · hunts · burn-checks · drafts candidates</p>
         </div>
       </div>
