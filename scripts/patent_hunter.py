@@ -729,6 +729,7 @@ Notes:
                 technical_terms=technical_terms[:5],
                 before_date=critical,
                 max_per_source=10,
+                log_fn=self.log,
             )
         except Exception as e:
             self.log(f"Product search error: {e}", "warn")
