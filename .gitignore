@@ -38,3 +38,8 @@ agent-tools/
 # Unrelated local-only study dumps (not part of bot repo)
 25657_IC_CHIP_CANDIDATES_READY/
 Battery Module/
+
+# PyInstaller build artifacts
+build/
+dist/
+*.spec
