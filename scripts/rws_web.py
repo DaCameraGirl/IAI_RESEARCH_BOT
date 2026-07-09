@@ -37,7 +37,7 @@ from study_bot import (  # noqa: E402
 # patent_hunter may not export list_candidates - that's in rws_gui. I'll define here or import from rws_gui logic
 
 PORT = 7842
-BUILD_VERSION = "2026-06-22-deep-hunt-v5"
+BUILD_VERSION = "2026-07-09-ultra-deep-v6"
 
 _hunt_thread: threading.Thread | None = None
 _hunt_engine: HuntEngine | None = None
