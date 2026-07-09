@@ -412,7 +412,7 @@ class HuntEngine:
         self.log(f"Starting DEEP hunt for {self.study_id} — {meta['title']}", "phase")
         self.log(
             f"Critical date ≤ {critical or 'unknown'} · {len(burned)} burned keys · "
-            f"max inspect {MAX_INSPECT} · burn gate ON · strict READY (high + ≥2 req-yes)",
+            f"max inspect {MAX_INSPECT} · burn gate ON · READY (rank ≥1, med/high conf, ≥1 yes OR ≥2 maybe)",
             "info",
         )
 
