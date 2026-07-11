@@ -76,6 +76,18 @@ class TestSearchFunctions(unittest.TestCase):
             hymn_hunter.search_internet_archive("Amazing Grace", "Russian")
         self.assertIn("mediatype", captured["url"])
 
+    def test_cebuano_queries_expand_language_aliases(self) -> None:
+        captured = {}
+
+        def fake_get_json(url):
+            captured["url"] = url
+            return {"response": {"docs": []}}
+
+        with patch.object(hymn_hunter, "_get_json", side_effect=fake_get_json):
+            hymn_hunter.search_hymnal_sources("Cebuano")
+        self.assertIn("Binisaya", captured["url"])
+        self.assertIn("Bisaya", captured["url"])
+
     def test_filter_hymn_hits_suppresses_low_signal_anthologies(self) -> None:
         hits = [
             {
@@ -196,6 +208,38 @@ class TestHymnHuntEngine(unittest.TestCase):
             engine.stop()
             result = engine.run()
         self.assertEqual(result["hymns_searched"], 0)
+
+    def test_second_run_with_no_hits_keeps_existing_library_files(self) -> None:
+        folder = self.tmp_path / "26006_Test"
+        cand_dir = folder / "candidates"
+        cand_dir.mkdir(exist_ok=True)
+        old_file = cand_dir / "Amazing_Grace_existing_hymn_lead.txt"
+        old_file.write_text(
+            "Type: Hymn translation lead\n"
+            "Hymn: Amazing Grace\n"
+            "Language: Russian\n"
+            "Source: archive.org\n"
+            "Title: Older Lead\n"
+            "URL: https://archive.org/details/older\n"
+            "Status: UNVERIFIED\n",
+            encoding="utf-8",
+        )
+
+        with patch.object(hymn_hunter, "search_hymnal_sources", return_value=[]), \
+             patch.object(hymn_hunter, "search_internet_archive", return_value=[]), \
+             patch.object(hymn_hunter, "search_google_books", return_value=[]), \
+             patch.object(hymn_hunter, "search_hathitrust", return_value=[]), \
+             patch.object(hymn_hunter, "search_worldcat", return_value=[]), \
+             patch.object(hymn_hunter, "search_musicbrainz_hymn", return_value=[]), \
+             patch.object(hymn_hunter, "search_discogs_hymn", return_value=[]), \
+             patch("time.sleep", return_value=None):
+            engine = hymn_hunter.HymnHuntEngine("26006", on_log=lambda m, l: None)
+            result = engine.run()
+
+        self.assertEqual(result["leads_found"], 0)
+        self.assertTrue(old_file.exists())
+        screen = (folder / "CANDIDATE_SCREEN.md").read_text(encoding="utf-8")
+        self.assertIn("Library lead files: 1", screen)
 
 
 if __name__ == "__main__":

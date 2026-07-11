@@ -18,6 +18,7 @@ a time" into "review N pre-queried candidate sources per hymn."
 from __future__ import annotations
 
 import json
+import hashlib
 import sys
 import time
 import urllib.error
@@ -69,6 +70,12 @@ HYMNAL_SIGNAL_TERMS = (
     "himny",
 )
 
+LANGUAGE_QUERY_TERMS = {
+    "Italian": '"Italian" OR italiano OR italiana',
+    "Russian": '"Russian" OR russkii OR русский',
+    "Cebuano": '"Cebuano" OR Binisaya OR Bisaya OR Sebwano OR Visayan',
+}
+
 
 def _get_json(url: str, timeout: int = REQUEST_TIMEOUT) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
@@ -113,9 +120,10 @@ def search_hymnal_sources(language: str, rows: int = 8) -> list[dict]:
     """
     seen_urls: set[str] = set()
     out: list[dict] = []
+    lang_expr = LANGUAGE_QUERY_TERMS.get(language, f'"{language}"')
     queries = (
-        f'{language} AND hymnal AND mediatype:(texts)',
-        f'{language} AND "hymn book" AND mediatype:(texts)',
+        f'({lang_expr}) AND (hymnal OR hymnbook OR hymn book) AND mediatype:(texts)',
+        f'({lang_expr}) AND (awit OR himno OR canticle OR songs) AND mediatype:(texts)',
     )
     for q in queries:
         for hit in _ia_search(q, rows):
@@ -167,10 +175,11 @@ def search_internet_archive(hymn_title: str, language: str, rows: int = 5) -> li
         "Finnish": "laulu OR virsi"
     }
     extra = lang_keywords.get(language, "")
+    lang_expr = LANGUAGE_QUERY_TERMS.get(language, f'"{language}"')
     if extra:
-        query = f'"{hymn_title}" AND ({extra}) AND mediatype:(texts)'
+        query = f'"{hymn_title}" AND ({lang_expr}) AND ({extra}) AND mediatype:(texts)'
     else:
-        query = f'"{hymn_title}" AND {language} AND mediatype:(texts)'
+        query = f'"{hymn_title}" AND ({lang_expr}) AND mediatype:(texts)'
     return _ia_search(query, rows)
 
 
@@ -210,7 +219,8 @@ def search_google_books(hymn_title: str, language: str, language_code: str | Non
         "Finnish": "laulu OR virsi"
     }
     extra = lang_keywords.get(language, "hymnal")
-    query = f'"{hymn_title}" {language} {extra}'
+    lang_expr = LANGUAGE_QUERY_TERMS.get(language, f'"{language}"')
+    query = f'"{hymn_title}" {lang_expr} {extra}'
     params = {"q": query, "maxResults": str(rows)}
     if language_code:
         params["langRestrict"] = language_code
@@ -272,7 +282,8 @@ def search_hathitrust(hymn_title: str, language: str, rows: int = 5) -> list[dic
         "Finnish": "laulu virsi"
     }
     extra = lang_keywords.get(language, "hymnal")
-    query = f'"{hymn_title}" {extra}'
+    lang_expr = LANGUAGE_QUERY_TERMS.get(language, f'"{language}"')
+    query = f'"{hymn_title}" {lang_expr} {extra}'
     
     # HathiTrust catalog search (web scraping fallback since API requires auth)
     search_url = f"https://catalog.hathitrust.org/Search/Home?lookfor={urllib.parse.quote(query)}&type=all"
@@ -332,7 +343,8 @@ def search_worldcat(hymn_title: str, language: str, rows: int = 3) -> list[dict]
         "Finnish": "laulu"
     }
     extra = lang_keywords.get(language, "hymnal")
-    query = f'"{hymn_title}" {extra}'
+    lang_expr = LANGUAGE_QUERY_TERMS.get(language, f'"{language}"')
+    query = f'"{hymn_title}" {lang_expr} {extra}'
     
     search_url = f"https://www.worldcat.org/search?q={urllib.parse.quote(query)}&qt=results_page"
     
@@ -459,6 +471,18 @@ def filter_hymn_hits(hits: list[dict], language: str) -> list[dict]:
     return filtered
 
 
+def _slug(text: str, limit: int = 60) -> str:
+    keep = "".join(c if c.isalnum() or c in " -_" else "" for c in text)
+    return "_".join(keep.split())[:limit] or "item"
+
+
+def _stable_lead_filename(prefix: str, *parts: str) -> str:
+    joined = " | ".join((part or "").strip() for part in parts)
+    digest = hashlib.sha1(joined.encode("utf-8", errors="replace")).hexdigest()[:10]
+    slug = _slug("_".join(part for part in parts if part), limit=70)
+    return f"{prefix}_{slug}_{digest}_hymn_lead.txt"
+
+
 class HymnHuntEngine:
     def __init__(self, study_id: str, on_log: LogFn | None = None) -> None:
         self.study_id = study_id
@@ -575,8 +599,8 @@ class HymnHuntEngine:
             if self.hymns_searched % 10 == 0:
                 self.log(f"Searched {self.hymns_searched}/{len(hymns)} hymns…", "info")
 
-        self._write_candidate_screen(folder, hymnal_sources, leads)
         self._write_candidate_files(folder, language, hymnal_sources, leads)
+        self._write_candidate_screen(folder, hymnal_sources, leads)
         self._update_hunt_log(folder, len(hymns))
 
         self.log(
@@ -594,11 +618,13 @@ class HymnHuntEngine:
 
     def _write_candidate_screen(self, folder: Path, hymnal_sources: list[dict], leads: list[dict]) -> None:
         today = datetime.now().strftime("%Y-%m-%d")
+        library_count = len(list((folder / "candidates").glob("*_hymn_lead.txt")))
         lines = [
             f"# Candidate Screen — updated {today}",
             "",
             f"Inspected: {self.hymns_searched} · Hymns with leads: {len(leads)} · "
-            f"Total per-hymn candidates: {self.leads_found} · Hymnal sources: {len(hymnal_sources)}",
+            f"Total per-hymn candidates: {self.leads_found} · Hymnal sources: {len(hymnal_sources)} · "
+            f"Library lead files: {library_count}",
             "",
             "## Candidate hymnal sources (search WITHIN these for the full hymn list — "
             "highest-value lead type, verified to beat per-hymn search)",
@@ -635,15 +661,15 @@ class HymnHuntEngine:
         """
         cand_dir = folder / "candidates"
         cand_dir.mkdir(parents=True, exist_ok=True)
-        for old in cand_dir.glob("*_hymn_lead.txt"):
-            old.unlink(missing_ok=True)
-
-        def _slug(text: str, limit: int = 60) -> str:
-            keep = "".join(c if c.isalnum() or c in " -_" else "" for c in text)
-            return "_".join(keep.split())[:limit] or "item"
 
         for hit in hymnal_sources:
-            fname = f"HYMNAL_SOURCE_{_slug(hit['title'])}_hymn_lead.txt"
+            fname = _stable_lead_filename(
+                "HYMNAL_SOURCE",
+                language,
+                str(hit.get("source", "")),
+                str(hit.get("title", "")),
+                str(hit.get("url", "")),
+            )
             (cand_dir / fname).write_text(
                 "Type: Candidate hymnal source (search within for the full hymn list)\n"
                 f"Language: {language}\n"
@@ -655,8 +681,15 @@ class HymnHuntEngine:
             )
 
         for lead in leads:
-            for i, hit in enumerate(lead["hits"]):
-                fname = f"{_slug(lead['hymn'])}_{i}_hymn_lead.txt"
+            for hit in lead["hits"]:
+                fname = _stable_lead_filename(
+                    _slug(lead["hymn"], limit=32),
+                    lead["hymn"],
+                    language,
+                    str(hit.get("source", "")),
+                    str(hit.get("title", "")),
+                    str(hit.get("url", "")),
+                )
                 (cand_dir / fname).write_text(
                     "Type: Hymn translation lead\n"
                     f"Hymn: {lead['hymn']}\n"
