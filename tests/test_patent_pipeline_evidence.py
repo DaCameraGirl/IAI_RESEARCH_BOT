@@ -115,6 +115,37 @@ class TestPatentPipelineEvidence(unittest.TestCase):
         self.assertTrue(hold_path.exists())
         self.assertFalse(proof_dir.exists())
 
+    def test_weak_patent_hit_persists_as_lead_record(self) -> None:
+        rec = self._record(
+            title="Axis mixer",
+            abstract="A mixer uses an axis arrangement for blending.",
+        )
+        rec = patent_hunter.score_record(rec, self.study_id)
+        engine = patent_hunter.HuntEngine(self.study_id)
+        engine._write_patent_lead(self.folder, rec, burned={})
+
+        lead_path = self.folder / "candidates" / "LEAD_US1234567_RWS_format.txt"
+        self.assertGreater(rec.score, 0)
+        self.assertFalse(rec.ready)
+        self.assertTrue(lead_path.exists())
+        text = lead_path.read_text(encoding="utf-8")
+        self.assertIn("Dropdown: Patent lead", text)
+        self.assertIn("Status: LEAD ONLY", text)
+
+    def test_candidate_screen_reports_library_leads(self) -> None:
+        rec = self._record(
+            title="Axis mixer",
+            abstract="A mixer uses an axis arrangement for blending.",
+        )
+        rec = patent_hunter.score_record(rec, self.study_id)
+        engine = patent_hunter.HuntEngine(self.study_id)
+        engine._write_patent_lead(self.folder, rec, burned={})
+        engine._update_candidate_screen(self.folder, ready=[], hold=[])
+
+        screen = (self.folder / "CANDIDATE_SCREEN.md").read_text(encoding="utf-8")
+        self.assertIn("Library: 1 LEAD", screen)
+        self.assertIn("READY this run: 0", screen)
+
 
 if __name__ == "__main__":
     unittest.main()

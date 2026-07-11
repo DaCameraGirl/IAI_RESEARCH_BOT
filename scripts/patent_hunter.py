@@ -590,22 +590,56 @@ class HuntEngine:
         cand_dir = folder / "candidates"
         cand_dir.mkdir(exist_ok=True)
         safe = re.sub(r"[^A-Za-z0-9]+", "_", record.publication_number or record.normalized_title or record.record_id)[:80]
-        path = cand_dir / f"LEAD_{safe}.txt"
+        path = cand_dir / f"LEAD_{safe}_RWS_format.txt"
         citation = record.citation_graph or {}
         lines = [
-            f"Evidence tier: {record.tier.value}",
-            f"Evidence type: {record.evidence_type.value}",
-            f"Title: {record.raw_title or record.publication_number}",
-            f"Source URL: {record.source_url}",
-            f"Document URL: {record.document_url}",
-            f"Direction: {citation.get('direction', '')}",
-            f"Discovered from: {citation.get('discovered_from', '')}",
+            f"publication: {record.publication_number or citation.get('target_publication', '') or record.record_id}",
+            f"title: {record.raw_title or record.publication_number or record.record_id}",
+            f"Dropdown: {record.evidence_type.value} lead",
+            "Self-rank: 0/3",
+            "In-scope confidence: low",
+            f"  URL: {record.source_url}",
+            f"  PDF URL: {record.document_url}",
             f"Source publication: {citation.get('source_publication', '')}",
             f"Target publication: {citation.get('target_publication', '')}",
             f"Hop count: {citation.get('hop_count', '')}",
             f"Relation confidence: {citation.get('relation_confidence', '')}",
             f"Duplicate status: {record.duplicate_status}",
             "Status: LEAD ONLY — retrieve and validate the underlying source document before surfacing",
+        ]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
+
+    def _write_patent_lead(
+        self, folder: Path, rec: PatentRecord, burned: dict[str, str] | None = None
+    ) -> None:
+        if not self._safe_to_surface(rec, burned):
+            self.log(f"BLOCKED lead {rec.pub_id} — known art (hard gate)", "skip")
+            return
+        cand_dir = folder / "candidates"
+        cand_dir.mkdir(exist_ok=True)
+        safe = patent_key(rec.pub_id)
+        path = cand_dir / f"LEAD_{safe}_RWS_format.txt"
+        yes_count = sum(1 for r in rec.req_rows if r["select"] == "yes")
+        maybe_count = sum(1 for r in rec.req_rows if r["select"] == "maybe")
+        lines = [
+            f"publication: {rec.pub_id}",
+            f"title: {rec.title}",
+            "Dropdown: Patent lead",
+            f"Self-rank: {rec.self_rank}/3",
+            f"In-scope confidence: {rec.confidence}",
+            f"  URL: {rec.url}",
+            f"  PDF URL: {rec.pdf_url}",
+            f"Priority date: {rec.priority_date}",
+            f"Publication date: {rec.publication_date}",
+            f"Assignee: {rec.assignee}",
+            f"Source lane: {rec.source_lane}",
+            f"Requirement yes count: {yes_count}",
+            f"Requirement maybe count: {maybe_count}",
+            f"Duplicate status: {'burned' if rec.burned else 'clear'}",
+            "Status: LEAD ONLY — needs stronger requirement support or validation before HOLD/READY",
+            "",
+            "Notes:",
+            f"  - {rec.rank_reason or 'Partial technical match only.'}",
         ]
         path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
@@ -632,7 +666,7 @@ class HuntEngine:
         self.log(f"Starting DEEP hunt for {self.study_id} — {meta['title']}", "phase")
         self.log(
             f"Critical date ≤ {critical or 'unknown'} · {len(burned)} burned keys · "
-            f"max inspect {MAX_INSPECT} · burn gate ON · READY (rank ≥1, med/high conf, ≥1 yes OR ≥2 maybe)",
+            f"max inspect {MAX_INSPECT} · burn gate ON · READY (rank ≥2, med/high conf, PROOF, hard gates clear)",
             "info",
         )
 
@@ -683,6 +717,7 @@ class HuntEngine:
             if evidence.tier is EvidenceTier.LEAD:
                 self._write_lane_lead(folder, evidence)
                 l2_lead_files += 1
+                self._update_candidate_screen(folder, ready, hold)
         self.log(
             f"  L2 leads: {len(l2_result.records)} records · {l2_queue_count} patent targets queued · {l2_lead_files} lead files",
             "info",
@@ -817,15 +852,19 @@ class HuntEngine:
                 if self._safe_to_surface(rec, burned):
                     ready.append(rec)
                     self._write_candidate(folder, rec, ready=True, burned=burned)
+                    self._update_candidate_screen(folder, ready, hold)
                 else:
                     self.log(f"BLOCKED write {pub} — known art (hard gate)", "skip")
             elif is_hold(rec.self_rank, rec.confidence):
                 if self._safe_to_surface(rec, burned):
                     hold.append(rec)
                     self._write_candidate(folder, rec, ready=False, burned=burned)
+                    self._update_candidate_screen(folder, ready, hold)
                 else:
                     self.log(f"BLOCKED hold {pub} — known art (hard gate)", "skip")
             elif rec.score > 0:
+                self._write_patent_lead(folder, rec, burned=burned)
+                self._update_candidate_screen(folder, ready, hold)
                 self.log(
                     f"  ↳ {pub} — weak ({rec.self_rank}/{rec.confidence}, "
                     f"yes={sum(1 for r in rec.req_rows if r['select']=='yes')})",
@@ -1181,15 +1220,36 @@ Notes:
         tier = "READY" if ready else "HOLD"
         self.log(f"Wrote {tier} → {path.name}", "success")
 
+    def _library_counts(self, folder: Path) -> dict[str, int]:
+        cand_dir = folder / "candidates"
+        counts = {"ready": 0, "hold": 0, "lead": 0}
+        if not cand_dir.exists():
+            return counts
+        for path in cand_dir.glob("*_RWS_format.txt"):
+            name = path.name
+            if name.startswith("HOLD_"):
+                counts["hold"] += 1
+            elif name.startswith(("NPL_", "PRODUCT_", "MUSIC_", "LEAD_")):
+                counts["lead"] += 1
+            else:
+                counts["ready"] += 1
+        return counts
+
     def _update_candidate_screen(
         self, folder: Path, ready: list[PatentRecord], hold: list[PatentRecord]
     ) -> None:
         screen = folder / "CANDIDATE_SCREEN.md"
         today = datetime.now().strftime("%Y-%m-%d %H:%M")
+        library = self._library_counts(folder)
         lines = [
             f"# Candidate Screen — updated {today}",
             "",
-            f"Inspected: {self.inspected} · READY: {len(ready)} · HOLD: {len(hold)}",
+            (
+                f"Inspected: {self.inspected} · READY this run: {len(ready)} · HOLD this run: {len(hold)}"
+            ),
+            (
+                f"Library: {library['lead']} LEAD · {library['hold']} HOLD · {library['ready']} READY"
+            ),
             "",
             "## READY (Self-rank ≥2, high/med)",
             "",
