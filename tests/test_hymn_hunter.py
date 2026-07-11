@@ -128,6 +128,10 @@ class TestHymnHuntEngine(unittest.TestCase):
         ]), patch.object(hymn_hunter, "search_internet_archive", return_value=[
             {"source": "archive.org", "title": "Russian Hymnal", "url": "https://archive.org/details/x"}
         ]), patch.object(hymn_hunter, "search_google_books", return_value=[]), \
+             patch.object(hymn_hunter, "search_hathitrust", return_value=[]), \
+             patch.object(hymn_hunter, "search_worldcat", return_value=[]), \
+             patch.object(hymn_hunter, "search_musicbrainz_hymn", return_value=[]), \
+             patch.object(hymn_hunter, "search_discogs_hymn", return_value=[]), \
              patch("time.sleep", return_value=None):
             engine = hymn_hunter.HymnHuntEngine("26006", on_log=lambda m, l: None)
             result = engine.run()
