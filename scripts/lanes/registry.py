@@ -6,6 +6,7 @@ from __future__ import annotations
 from evidence_schema import EvidenceType
 
 from .base import CostClass, LaneDefinition, LaneProduce
+from .patent_citations_prosecution import get_patent_citations_prosecution_lane
 
 
 _LANES: dict[str, LaneDefinition] = {
@@ -135,6 +136,12 @@ def list_lanes() -> list[LaneDefinition]:
 
 def get_lane_definition(lane_id: str) -> LaneDefinition:
     return _LANES[lane_id]
+
+
+def get_lane_runner(lane_id: str):
+    if lane_id == "L2_PATENT_CITATIONS_PROSECUTION":
+        return get_patent_citations_prosecution_lane()
+    raise KeyError(f"No runner registered for lane {lane_id}")
 
 
 def lane_for_source_label(source_lane: str) -> LaneDefinition:

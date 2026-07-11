@@ -187,3 +187,39 @@ def ready_decision(
     if record.hard_gate_failures:
         reasons.append("hard gates failed: " + ", ".join(record.hard_gate_failures))
     return eligible, "; ".join(reasons)
+
+
+def classify_evidence_record(record: EvidenceRecord) -> EvidenceRecord:
+    scored = score_evidence(record)
+    failures_without_tier = evaluate_hard_gates(scored, include_tier_gate=False)
+    if not failures_without_tier:
+        target_tier = EvidenceTier.PROOF
+    elif any(
+        failure in {"post-critical date", "known-art match", "known-family duplicate"}
+        for failure in failures_without_tier
+    ):
+        target_tier = EvidenceTier.LEAD
+    elif any(
+        (
+            scored.document_url,
+            scored.local_copy_path,
+            scored.document_date,
+            scored.shortest_verbatim_highlight,
+            scored.requirement_mapping,
+        )
+    ):
+        target_tier = EvidenceTier.CANDIDATE
+    else:
+        target_tier = EvidenceTier.LEAD
+
+    if scored.tier is target_tier and scored.hard_gate_failures == evaluate_hard_gates(scored):
+        return scored
+
+    rebuilt = EvidenceRecord.from_dict(
+        {
+            **scored.to_dict(),
+            "tier": target_tier.value,
+            "hard_gate_failures": [],
+        }
+    )
+    return score_evidence(rebuilt)

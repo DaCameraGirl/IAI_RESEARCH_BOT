@@ -14,8 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Callable
 from evidence_schema import EvidenceRecord, EvidenceTier, EvidenceType
-from evidence_scoring import evaluate_hard_gates, ready_decision, score_evidence
-from lanes.registry import lane_for_source_label
+from evidence_scoring import classify_evidence_record, ready_decision
+from lanes.registry import get_lane_runner, lane_for_source_label
 from normalizers.entities import normalize_entity_name, normalize_inventor_name
 from normalizers.patent_family import normalize_publication_number
 from normalizers.titles import normalize_title
@@ -97,6 +97,7 @@ class PatentRecord:
     evidence_tier: str = EvidenceTier.LEAD.value
     normalization_results: dict = field(default_factory=dict)
     query_plan_provenance: list[dict] = field(default_factory=list)
+    citation_provenance: list[dict] = field(default_factory=list)
 
 
 def _fetch_html(url: str) -> str:
@@ -344,26 +345,15 @@ def _build_patent_evidence_record(rec: PatentRecord, study_id: str) -> EvidenceR
         metadata_uncertainty="" if document_date else "missing-date",
         corroboration_keys=[rec.url] if rec.url else [],
         content_sha256="",
+        provenance={
+            "source_lane": rec.source_lane,
+            "citation_provenance": rec.citation_provenance,
+        },
+        citation_graph=rec.citation_provenance[0] if rec.citation_provenance else {},
         rank_reason=rec.rank_reason,
         notes=[f"source_lane={rec.source_lane}", f"lane_name={lane.name}", f"study_profile={profile.name}"],
     )
-    scored = score_evidence(base)
-    proof_failures = evaluate_hard_gates(scored, include_tier_gate=False)
-    if not proof_failures:
-        scored = EvidenceRecord.from_dict(
-            {**scored.to_dict(), "tier": EvidenceTier.PROOF.value, "hard_gate_failures": []}
-        )
-        scored = score_evidence(scored)
-    elif scored.document_url or scored.requirement_mapping or document_date:
-        scored = EvidenceRecord.from_dict(
-            {**scored.to_dict(), "tier": EvidenceTier.CANDIDATE.value, "hard_gate_failures": []}
-        )
-        scored = score_evidence(scored)
-    else:
-        scored = EvidenceRecord.from_dict(
-            {**scored.to_dict(), "tier": EvidenceTier.LEAD.value, "hard_gate_failures": []}
-        )
-        scored = score_evidence(scored)
+    scored = classify_evidence_record(base)
 
     rec.evidence_record = scored
     rec.evidence_score = scored.score
@@ -396,6 +386,8 @@ def _build_patent_evidence_record(rec: PatentRecord, study_id: str) -> EvidenceR
             "study_profile": profile.name,
         }
     ]
+    if rec.citation_provenance:
+        rec.query_plan_provenance.extend(rec.citation_provenance)
     return scored
 
 
@@ -441,6 +433,7 @@ def _proof_bundle_metadata(rec: PatentRecord, study_id: str) -> dict:
         "hard_gate_failures": evidence.hard_gate_failures,
         "query_plan_provenance": rec.query_plan_provenance,
         "normalization_results": rec.normalization_results,
+        "citation_provenance": rec.citation_provenance,
     }
 
 
@@ -563,6 +556,7 @@ class HuntEngine:
         self.results: list[PatentRecord] = []
         self.inspected = 0
         self.lanes_done: list[str] = []
+        self.citation_provenance_by_pub: dict[str, list[dict]] = {}
 
     def log(self, msg: str, level: str = "info") -> None:
         self.on_log(msg, level)
@@ -577,9 +571,12 @@ class HuntEngine:
         pub: str,
         source: str,
         burned: dict[str, str],
+        provenance: dict | None = None,
     ) -> bool:
         """Add to inspect queue only if NOT already known art."""
         key = patent_key(pub)
+        if provenance:
+            self.citation_provenance_by_pub.setdefault(key, []).append(dict(provenance))
         if key in seen:
             return False
         hit, _rel = is_burned(pub, burned)
@@ -588,6 +585,29 @@ class HuntEngine:
         seen.add(key)
         queue.append((pub, source))
         return True
+
+    def _write_lane_lead(self, folder: Path, record: EvidenceRecord) -> None:
+        cand_dir = folder / "candidates"
+        cand_dir.mkdir(exist_ok=True)
+        safe = re.sub(r"[^A-Za-z0-9]+", "_", record.publication_number or record.normalized_title or record.record_id)[:80]
+        path = cand_dir / f"LEAD_{safe}.txt"
+        citation = record.citation_graph or {}
+        lines = [
+            f"Evidence tier: {record.tier.value}",
+            f"Evidence type: {record.evidence_type.value}",
+            f"Title: {record.raw_title or record.publication_number}",
+            f"Source URL: {record.source_url}",
+            f"Document URL: {record.document_url}",
+            f"Direction: {citation.get('direction', '')}",
+            f"Discovered from: {citation.get('discovered_from', '')}",
+            f"Source publication: {citation.get('source_publication', '')}",
+            f"Target publication: {citation.get('target_publication', '')}",
+            f"Hop count: {citation.get('hop_count', '')}",
+            f"Relation confidence: {citation.get('relation_confidence', '')}",
+            f"Duplicate status: {record.duplicate_status}",
+            "Status: LEAD ONLY — retrieve and validate the underlying source document before surfacing",
+        ]
+        path.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
     def run_deep(self) -> dict:
         meta = STUDY_META[self.study_id]
@@ -631,8 +651,46 @@ class HuntEngine:
                 burned_skipped += 1
         self.lanes_done.append("L1")
 
-        # L2 — 2-hop citation expansion
-        self.log("L2: Citation graph 2-hop", "lane")
+        # L2 — citation, prosecution, and PTAB lead discovery
+        self.log("L2: Citation, prosecution, and PTAB lead discovery", "lane")
+        l2_runner = get_lane_runner("L2_PATENT_CITATIONS_PROSECUTION")
+        l2_result = l2_runner.run(
+            self.study_id,
+            publication_number=study_patent,
+            critical_date=critical,
+            known_art_set=burned,
+            citation_depth=1,
+            root_record=root,
+            fetch_patent_record=fetch_patent,
+        )
+        l2_queue_count = 0
+        l2_lead_files = 0
+        for evidence in l2_result.records:
+            citation = evidence.citation_graph or {}
+            target_pub = citation.get("target_publication") or evidence.publication_number
+            if evidence.evidence_type is EvidenceType.PATENT and target_pub:
+                added = self._queue_add(
+                    queue,
+                    seen,
+                    target_pub,
+                    f"L2-{citation.get('direction', 'citation')}",
+                    burned,
+                    provenance=citation,
+                )
+                if added:
+                    l2_queue_count += 1
+                continue
+            if evidence.tier is EvidenceTier.LEAD:
+                self._write_lane_lead(folder, evidence)
+                l2_lead_files += 1
+        self.log(
+            f"  L2 leads: {len(l2_result.records)} records · {l2_queue_count} patent targets queued · {l2_lead_files} lead files",
+            "info",
+        )
+        self.lanes_done.append("L2")
+
+        # L2b — 2-hop citation expansion
+        self.log("L2b: Citation graph 2-hop", "lane")
         hop1 = [p for p, s in queue if s.startswith("L1")][:L2_HOP1_LIMIT]
         hop2: list[str] = []
         for pub in hop1:
@@ -641,21 +699,21 @@ class HuntEngine:
             rec = fetch_patent(pub)
             time.sleep(0.25)
             for cite in rec.citations[:L2_CITES_PER]:
-                if self._queue_add(queue, seen, cite, f"L2-via-{pub}", burned):
+                if self._queue_add(queue, seen, cite, f"L2b-via-{pub}", burned):
                     hop2.append(cite)
-        self.log(f"  L2 hop-1: {len(hop1)} parents · {len(hop2)} new cites queued", "info")
-        self.lanes_done.append("L2")
+        self.log(f"  L2b hop-1: {len(hop1)} parents · {len(hop2)} new cites queued", "info")
+        self.lanes_done.append("L2b")
 
-        # L2b — 3-hop citation graph (deeper backward expansion)
-        self.log("L2b: Citation graph 3-hop", "lane")
+        # L2c — 3-hop citation graph (deeper backward expansion)
+        self.log("L2c: Citation graph 3-hop", "lane")
         for pub in hop2[:L2_HOP3_LIMIT]:
             if self.stopped:
                 break
             rec = fetch_patent(pub)
             time.sleep(0.2)
             for cite in rec.citations[:12]:
-                self._queue_add(queue, seen, cite, f"L2b-via-{pub}", burned)
-        self.lanes_done.append("L2b")
+                self._queue_add(queue, seen, cite, f"L2c-via-{pub}", burned)
+        self.lanes_done.append("L2c")
 
         # L3 — assignee pre-date search
         self.log("L3: Assignee sweep (Google Patents search)", "lane")
@@ -725,6 +783,7 @@ class HuntEngine:
             rec = fetch_patent(pub)
             time.sleep(0.2)
             rec.source_lane = source
+            rec.citation_provenance = list(self.citation_provenance_by_pub.get(patent_key(pub), []))
             rec = burn_check(rec, self.study_id, burned)
             self.inspected += 1
             if self.inspected % 25 == 0:

@@ -86,6 +86,8 @@ class EvidenceRecord:
     score: int = 0
     score_breakdown: dict[str, dict[str, Any]] = field(default_factory=dict)
     hard_gate_failures: list[str] = field(default_factory=list)
+    provenance: dict[str, Any] = field(default_factory=dict)
+    citation_graph: dict[str, Any] = field(default_factory=dict)
     rank_reason: str = ""
     notes: list[str] = field(default_factory=list)
 
