@@ -41,11 +41,25 @@ from study_bot import (  # noqa: E402
 PORT = 7842
 BUILD_VERSION = "v1.0 | 2026-07-11-aia-researcher"
 
-_hunt_thread: threading.Thread | None = None
-_hunt_engine: HuntEngine | None = None
-_log_queue: queue.Queue[dict] = queue.Queue()
-_hunt_result: dict | None = None
-_hunt_study_id: str | None = None
+_hunt_threads: dict[str, threading.Thread] = {}
+_hunt_engines: dict[str, object] = {}
+_log_queues: dict[str, queue.Queue[dict]] = {}
+_hunt_results: dict[str, dict | None] = {}
+
+
+def _get_log_queue(study_id: str) -> queue.Queue[dict]:
+    if study_id not in _log_queues:
+        _log_queues[study_id] = queue.Queue()
+    return _log_queues[study_id]
+
+
+def _study_hunt_running(study_id: str) -> bool:
+    thread = _hunt_threads.get(study_id)
+    return bool(thread and thread.is_alive())
+
+
+def _active_hunt_studies() -> list[str]:
+    return [sid for sid, thread in _hunt_threads.items() if thread and thread.is_alive()]
 
 
 def _study_patent_key(study_id: str) -> str | None:
@@ -267,47 +281,44 @@ def _html_response(handler: BaseHTTPRequestHandler, html: str) -> None:
 
 
 def _start_hunt(study_id: str) -> dict:
-    global _hunt_thread, _hunt_engine, _hunt_result, _hunt_study_id
+    if _study_hunt_running(study_id):
+        return {"ok": False, "error": "Hunt already running for this study"}
 
-    if _hunt_thread and _hunt_thread.is_alive():
-        return {"ok": False, "error": "Hunt already running"}
-
-    _hunt_result = None
-    _hunt_study_id = study_id
-    while not _log_queue.empty():
+    _hunt_results[study_id] = None
+    log_queue = _get_log_queue(study_id)
+    while not log_queue.empty():
         try:
-            _log_queue.get_nowait()
+            log_queue.get_nowait()
         except queue.Empty:
             break
 
     def on_log(msg: str, level: str) -> None:
-        _log_queue.put(
-            {"t": datetime.now().strftime("%H:%M:%S"), "msg": msg, "level": level}
+        log_queue.put(
+            {"t": datetime.now().strftime("%H:%M:%S"), "msg": msg, "level": level, "study": study_id}
         )
 
     def run() -> None:
-        global _hunt_result, _hunt_study_id
         meta = STUDY_META[study_id]
         if meta.get("type") == "copyright":
             engine = HymnHuntEngine(study_id, on_log=on_log)
-            globals()["_hunt_engine"] = engine
+            _hunt_engines[study_id] = engine
             try:
-                _hunt_result = engine.run()
+                _hunt_results[study_id] = engine.run()
                 state = load_state()
                 if study_id in state["studies"]:
-                    state["studies"][study_id]["candidates_found"] = _hunt_result.get("leads_found", 0)
+                    state["studies"][study_id]["candidates_found"] = _hunt_results[study_id].get("leads_found", 0)
                     state["studies"][study_id]["rounds_completed"] = state["studies"][study_id].get("rounds_completed", 0) + 1
                 save_state(state)
             except Exception as exc:
                 on_log(f"Hunt error: {exc}", "error")
             finally:
-                _hunt_study_id = study_id
+                _hunt_engines.pop(study_id, None)
             return
 
         engine = HuntEngine(study_id, on_log=on_log)
-        globals()["_hunt_engine"] = engine
+        _hunt_engines[study_id] = engine
         try:
-            _hunt_result = engine.run_deep()
+            _hunt_results[study_id] = engine.run_deep()
             state = load_state()
             if study_id in state["studies"]:
                 state["studies"][study_id]["candidates_found"] = len(_parse_candidates(study_id))
@@ -315,12 +326,12 @@ def _start_hunt(study_id: str) -> dict:
             save_state(state)
         except Exception as exc:
             on_log(f"Hunt error: {exc}", "error")
-            _hunt_result = {"error": str(exc)}
+            _hunt_results[study_id] = {"error": str(exc)}
         finally:
-            _hunt_study_id = study_id
+            _hunt_engines.pop(study_id, None)
 
-    _hunt_thread = threading.Thread(target=run, daemon=True)
-    _hunt_thread.start()
+    _hunt_threads[study_id] = threading.Thread(target=run, daemon=True)
+    _hunt_threads[study_id].start()
     return {"ok": True, "study_id": study_id}
 
 
@@ -722,6 +733,7 @@ let selectedStudy = null;
 let pollTimer = null;
 let hunting = false;
 let huntingStudy = null;
+let huntLogsByStudy = {};
 const PAGE_VERSION = """ + '"' + BUILD_VERSION + '"' + """;
 
 async function api(path, opts={}) {
@@ -740,6 +752,22 @@ function $(id) { return document.getElementById(id); }
 
 function currentMeta() {
   return state?.studies?.[selectedStudy] || null;
+}
+
+function renderConsole() {
+  const c = $('console');
+  const entries = huntLogsByStudy[selectedStudy] || [];
+  if (!entries.length) {
+    const meta = currentMeta();
+    const msg = meta?.hunt_running
+      ? `Live hunt running for study ${selectedStudy}...`
+      : (currentMeta()?.console_empty || 'No live hunt output yet.');
+    c.innerHTML = `<div class="empty">${msg}</div>`;
+    return;
+  }
+  c.innerHTML = '';
+  entries.forEach(entry => appendLog(entry, c));
+  c.scrollTop = c.scrollHeight;
 }
 
 function setHuntUi(running, studyId=null) {
@@ -774,8 +802,7 @@ function renderState(data) {
   $('studyFocus').textContent = meta.focus;
   $('sourcesCopy').innerHTML = meta.sources_html;
   $('howItWorksCopy').innerHTML = meta.how_it_works_html;
-  const consoleEmpty = $('consoleEmpty');
-  if (consoleEmpty) consoleEmpty.textContent = meta.console_empty;
+  renderConsole();
 
   if (meta.patent) {
     $('stats').innerHTML = `
@@ -819,30 +846,23 @@ function renderState(data) {
   if (meta.blocked) {
     huntBtn.disabled = true;
     huntBtn.textContent = 'Study blocked - paste brief';
-  } else if (!hunting) {
+  } else if (!meta.hunt_running) {
     huntBtn.disabled = false;
     huntBtn.textContent = `⚡ ${meta.hunt_label}`;
     huntBtn.classList.remove('running');
   }
-  setHuntUi(Boolean(data.hunt_running), data.hunt_study || null);
-  if (!hunting || huntingStudy !== selectedStudy) {
-    huntBtn.disabled = !!meta.blocked || (Boolean(data.hunt_running) && data.hunt_study && data.hunt_study !== selectedStudy);
-    if (!meta.blocked) {
-      huntBtn.textContent = Boolean(data.hunt_running) && data.hunt_study && data.hunt_study !== selectedStudy
-        ? `⚡ Hunt running on ${data.hunt_study}`
-        : `⚡ ${meta.hunt_label}`;
-    }
+  setHuntUi(Boolean(meta.hunt_running), selectedStudy);
+  if (!meta.hunt_running) {
+    huntBtn.disabled = !!meta.blocked;
+    if (!meta.blocked) huntBtn.textContent = `⚡ ${meta.hunt_label}`;
   }
 }
 
-function addLog(entry) {
-  const c = $('console');
-  if (c.querySelector('.empty')) c.innerHTML = '';
+function appendLog(entry, c=$('console')) {
   const d = document.createElement('div');
   d.className = 'log-line ' + (entry.level || 'info');
   d.innerHTML = `<span class="t">${entry.t}</span>${entry.msg}`;
   c.appendChild(d);
-  c.scrollTop = c.scrollHeight;
 }
 
 async function loadState() {
@@ -898,12 +918,15 @@ async function loadCandidates() {
 
 async function startHunt() {
   setHuntUi(true, selectedStudy);
-  $('console').innerHTML = '';
+  huntLogsByStudy[selectedStudy] = [];
+  renderConsole();
   document.querySelector('[data-tab="console"]').click();
   const started = await api('/api/hunt/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({study: selectedStudy}) });
   if (!started.ok) {
     setHuntUi(false, null);
-    addLog({t: new Date().toLocaleTimeString('en-US', {hour12:false}), msg: started.error || 'Hunt failed to start', level: 'error'});
+    huntLogsByStudy[selectedStudy] = huntLogsByStudy[selectedStudy] || [];
+    huntLogsByStudy[selectedStudy].push({t: new Date().toLocaleTimeString('en-US', {hour12:false}), msg: started.error || 'Hunt failed to start', level: 'error'});
+    renderConsole();
     loadState();
     return;
   }
@@ -913,16 +936,18 @@ async function startHunt() {
 function pollLogs() {
   if (pollTimer) clearInterval(pollTimer);
   pollTimer = setInterval(async () => {
-    const data = await api('/api/hunt/logs');
+    const data = await api('/api/hunt/logs?study=' + selectedStudy);
     data.logs.forEach(e => {
-      if (!e._seen) { e._seen = true; addLog(e); }
+      const sid = e.study || selectedStudy;
+      huntLogsByStudy[sid] = huntLogsByStudy[sid] || [];
+      huntLogsByStudy[sid].push(e);
     });
-    setHuntUi(Boolean(data.running), data.hunt_study || null);
-    if (!data.running && hunting) {
+    renderConsole();
+    setHuntUi(Boolean(data.running), selectedStudy);
+    if (!data.running && hunting && huntingStudy === selectedStudy) {
       setHuntUi(false, null);
       $('roundBtn').style.display = 'inline-block';
       $('roundBtn').classList.add('blink');
-      clearInterval(pollTimer);
       loadState();
       loadCandidates();
     }
@@ -933,8 +958,10 @@ $('huntBtn').onclick = startHunt;
 $('stopBtn').onclick = async () => {
   $('stopBtn').disabled = true;
   $('stopBtn').textContent = 'Stopping...';
-  await api('/api/hunt/stop', {method:'POST'});
-  addLog({t: new Date().toLocaleTimeString('en-US', {hour12:false}), msg: 'Stop requested', level: 'warn'});
+  await api('/api/hunt/stop', {method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({study: selectedStudy})});
+  huntLogsByStudy[selectedStudy] = huntLogsByStudy[selectedStudy] || [];
+  huntLogsByStudy[selectedStudy].push({t: new Date().toLocaleTimeString('en-US', {hour12:false}), msg: 'Stop requested', level: 'warn'});
+  renderConsole();
 };
 $('roundBtn').onclick = () => { 
   $('roundBtn').style.display = 'none'; 
@@ -1054,6 +1081,7 @@ class RWSHandler(BaseHTTPRequestHandler):
         if path == "/api/state":
             state = load_state()
             cur = current_id(state)
+            active_hunts = _active_hunt_studies()
             studies = {}
             for sid in state["queue"]:
                 meta = STUDY_META[sid]
@@ -1080,6 +1108,7 @@ class RWSHandler(BaseHTTPRequestHandler):
                     "hold_candidates": hold,
                     "ready_candidates": ready,
                     "burned": _burn_count(sid),
+                    "hunt_running": sid in active_hunts,
                     **ui,
                 }
             _json_response(
@@ -1088,8 +1117,8 @@ class RWSHandler(BaseHTTPRequestHandler):
                     "current": cur,
                     "queue": state["queue"],
                     "studies": studies,
-                    "hunt_running": _hunt_thread is not None and _hunt_thread.is_alive(),
-                    "hunt_study": _hunt_study_id,
+                    "hunt_running": bool(active_hunts),
+                    "active_hunts": active_hunts,
                     "version": BUILD_VERSION,
                 },
             )
@@ -1102,16 +1131,19 @@ class RWSHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/hunt/logs":
+            qs = parse_qs(urlparse(self.path).query)
+            sid = (qs.get("study") or [current_id(load_state())])[0]
+            log_queue = _get_log_queue(sid)
             logs = []
             while True:
                 try:
-                    logs.append(_log_queue.get_nowait())
+                    logs.append(log_queue.get_nowait())
                 except queue.Empty:
                     break
-            running = _hunt_thread is not None and _hunt_thread.is_alive()
+            running = _study_hunt_running(sid)
             _json_response(
                 self,
-                {"logs": logs, "running": running, "result": _hunt_result, "hunt_study": _hunt_study_id},
+                {"logs": logs, "running": running, "result": _hunt_results.get(sid), "study": sid},
             )
             return
 
@@ -1135,8 +1167,10 @@ class RWSHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/api/hunt/stop":
-            if _hunt_engine:
-                _hunt_engine.stop()
+            sid = data.get("study") or current_id(load_state())
+            engine = _hunt_engines.get(sid)
+            if engine:
+                engine.stop()
             _json_response(self, {"ok": True})
             return
 
