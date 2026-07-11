@@ -17,6 +17,8 @@ class TestPatentReadyGate(unittest.TestCase):
     def setUp(self) -> None:
         self.study_id = "TREADY"
         self.meta = {
+            "title": "Blender offset study",
+            "patent": "US9999999",
             "keywords": ["offset", "axis", "battery", "charge"],
             "requirements": [
                 {"id": "R1", "name": "Offset axis", "keywords": ["offset", "axis"]},
@@ -38,6 +40,10 @@ class TestPatentReadyGate(unittest.TestCase):
         rec = patent_hunter.PatentRecord(
             pub_id="US1234567",
             title="Offset axis mixer",
+            priority_date="2019-01-01",
+            publication_date="2019-06-01",
+            url="https://patents.google.com/patent/US1234567",
+            pdf_url="https://patents.google.com/patent/US1234567.pdf",
             abstract="The blade uses an offset axis for mixing.",
         )
         scored = patent_hunter.score_record(rec, self.study_id)
@@ -49,6 +55,10 @@ class TestPatentReadyGate(unittest.TestCase):
         rec = patent_hunter.PatentRecord(
             pub_id="US2345678",
             title="Offset axis rechargeable mixer",
+            priority_date="2019-01-01",
+            publication_date="2019-06-01",
+            url="https://patents.google.com/patent/US2345678",
+            pdf_url="https://patents.google.com/patent/US2345678.pdf",
             abstract="The blade uses an offset axis and a battery charge system.",
         )
         scored = patent_hunter.score_record(rec, self.study_id)

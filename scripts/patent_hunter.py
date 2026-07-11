@@ -13,13 +13,18 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
+from evidence_schema import EvidenceRecord, EvidenceTier, EvidenceType
+from evidence_scoring import evaluate_hard_gates, ready_decision, score_evidence
+from lanes.registry import lane_for_source_label
+from normalizers.entities import normalize_entity_name, normalize_inventor_name
+from normalizers.patent_family import normalize_publication_number
+from normalizers.titles import normalize_title
 from repo_paths import REPO_ROOT, SCRIPTS_DIR
 from proof_bundle import write_ready_proof_bundle
 from research_policy import (
-    HOLD_MIN_RANK,
     is_hold,
-    is_ready,
 )
+from study_profiles import resolve_profile_from_meta
 
 REPO = REPO_ROOT
 
@@ -85,6 +90,13 @@ class PatentRecord:
     confidence: str = "low"
     ready: bool = False
     rank_reason: str = ""
+    evidence_record: EvidenceRecord | None = None
+    evidence_score: int = 0
+    score_breakdown: dict = field(default_factory=dict)
+    hard_gate_failures: list[str] = field(default_factory=list)
+    evidence_tier: str = EvidenceTier.LEAD.value
+    normalization_results: dict = field(default_factory=dict)
+    query_plan_provenance: list[dict] = field(default_factory=list)
 
 
 def _fetch_html(url: str) -> str:
@@ -222,7 +234,18 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
         f"priority_yes={priority_yes}, req_yes={yes_count}, req_maybe={maybe_count}, "
         f"matched_keywords={len(matched)}; rank follows requirement coverage, not keyword count alone"
     )
-    rec.ready = not rec.burned and is_ready(rec.self_rank, rec.confidence)
+    evidence = _build_patent_evidence_record(rec, study_id)
+    rec.evidence_record = evidence
+    rec.evidence_score = evidence.score
+    rec.score_breakdown = evidence.score_breakdown
+    rec.hard_gate_failures = evidence.hard_gate_failures
+    rec.evidence_tier = evidence.tier.value
+    rec.ready, reasoning = ready_decision(
+        evidence,
+        self_rank=rec.self_rank,
+        confidence=rec.confidence,
+    )
+    rec.rank_reason = f"{rec.rank_reason}; {reasoning}"
     return rec
 
 
@@ -240,7 +263,10 @@ def burn_check(rec: PatentRecord, study_id: str, burned: dict[str, str]) -> Pate
 
 
 def is_study_patent(rec: PatentRecord, study_id: str) -> bool:
-    study_pub = patent_key(STUDY_META[study_id]["patent"])
+    study_patent = STUDY_META[study_id].get("patent", "")
+    if not study_patent:
+        return False
+    study_pub = patent_key(study_patent)
     return patent_key(rec.pub_id) == study_pub
 
 
@@ -255,13 +281,126 @@ def date_ok(rec: PatentRecord, critical: str | None) -> bool:
 
 def _candidate_access_status(rec: PatentRecord) -> str:
     if rec.pdf_url or rec.uspto_pdf_url:
-        return "open"
+        return "downloadable-pdf"
     if rec.url:
         return "landing-page-only"
     return "unknown"
 
 
+def _build_patent_evidence_record(rec: PatentRecord, study_id: str) -> EvidenceRecord:
+    profile = resolve_profile_from_meta(STUDY_META[study_id])
+    critical = _parse_critical_date(study_id) or ""
+    document_date = rec.priority_date or rec.publication_date or ""
+    phrases = ctrl_f_phrases(rec.abstract or rec.title, rec.matched_keywords, limit=1)
+    lane = lane_for_source_label(rec.source_lane or "L1")
+    patent_norm = normalize_publication_number(rec.pub_id)
+    entity_norm = normalize_entity_name(rec.assignee)
+    highlight = phrases[0] if phrases else ""
+    requirement_mapping = rec.req_rows
+    duplicate_status = "clear"
+    if rec.burned:
+        duplicate_status = "known-art"
+    elif is_study_patent(rec, study_id):
+        duplicate_status = "known-family-duplicate"
+
+    base = EvidenceRecord(
+        record_id=f"{study_id}:{patent_norm.normalized_publication or rec.pub_id}",
+        study_id=study_id,
+        lane_id=lane.id,
+        tier=EvidenceTier.CANDIDATE,
+        evidence_type=EvidenceType.PATENT,
+        raw_title=rec.title,
+        normalized_title=normalize_title(rec.title),
+        source_url=rec.url,
+        archived_url="",
+        document_url=rec.pdf_url or rec.uspto_pdf_url or rec.url,
+        local_copy_path="",
+        source_snapshot_path="",
+        document_date=document_date,
+        date_kind="priority_date" if rec.priority_date else ("publication_date" if rec.publication_date else ""),
+        date_confidence="verified" if document_date else "",
+        critical_date=critical,
+        language="en",
+        publisher="Google Patents" if rec.url else "",
+        authors=[],
+        assignee=rec.assignee,
+        inventor_names=[normalize_inventor_name(name) for name in rec.inventors.split(",") if name.strip()],
+        publication_number=patent_norm.normalized_publication,
+        patent_family_key=patent_norm.family_key,
+        entity_key=entity_norm.canonical,
+        model_numbers=[],
+        part_numbers=[patent_norm.normalized_publication] if patent_norm.normalized_publication else [],
+        cpc_codes=[part.strip() for part in rec.cpc.split("/") if part.strip()],
+        ipc_codes=[],
+        requirement_mapping=requirement_mapping,
+        shortest_verbatim_highlight=highlight,
+        page_number=None,
+        timestamp_or_location="abstract",
+        access_status=_candidate_access_status(rec),
+        source_reliability="patent-office",
+        duplicate_status=duplicate_status,
+        duplicate_relation=rec.burn_relation,
+        inference_burden="direct" if any(row.get("select") == "yes" for row in requirement_mapping) else "inferred-only",
+        metadata_uncertainty="" if document_date else "missing-date",
+        corroboration_keys=[rec.url] if rec.url else [],
+        content_sha256="",
+        rank_reason=rec.rank_reason,
+        notes=[f"source_lane={rec.source_lane}", f"lane_name={lane.name}", f"study_profile={profile.name}"],
+    )
+    scored = score_evidence(base)
+    proof_failures = evaluate_hard_gates(scored, include_tier_gate=False)
+    if not proof_failures:
+        scored = EvidenceRecord.from_dict(
+            {**scored.to_dict(), "tier": EvidenceTier.PROOF.value, "hard_gate_failures": []}
+        )
+        scored = score_evidence(scored)
+    elif scored.document_url or scored.requirement_mapping or document_date:
+        scored = EvidenceRecord.from_dict(
+            {**scored.to_dict(), "tier": EvidenceTier.CANDIDATE.value, "hard_gate_failures": []}
+        )
+        scored = score_evidence(scored)
+    else:
+        scored = EvidenceRecord.from_dict(
+            {**scored.to_dict(), "tier": EvidenceTier.LEAD.value, "hard_gate_failures": []}
+        )
+        scored = score_evidence(scored)
+
+    rec.evidence_record = scored
+    rec.evidence_score = scored.score
+    rec.score_breakdown = scored.score_breakdown
+    rec.hard_gate_failures = scored.hard_gate_failures
+    rec.evidence_tier = scored.tier.value
+    rec.normalization_results = {
+        "patent": {
+            "normalized_publication": patent_norm.normalized_publication,
+            "family_key": patent_norm.family_key,
+            "number_type": patent_norm.number_type,
+            "evidence_basis": patent_norm.evidence_basis,
+        },
+        "entity": {
+            "canonical": entity_norm.canonical,
+            "matched_alias": entity_norm.matched_alias,
+            "aliases": entity_norm.aliases,
+            "predecessors": entity_norm.predecessors,
+            "subsidiaries": entity_norm.subsidiaries,
+        },
+        "title": {
+            "normalized_title": scored.normalized_title,
+        },
+    }
+    rec.query_plan_provenance = [
+        {
+            "lane_id": lane.id,
+            "lane_name": lane.name,
+            "source_lane": rec.source_lane,
+            "study_profile": profile.name,
+        }
+    ]
+    return scored
+
+
 def _proof_bundle_metadata(rec: PatentRecord, study_id: str) -> dict:
+    evidence = rec.evidence_record or _build_patent_evidence_record(rec, study_id)
     critical = _parse_critical_date(study_id)
     document_date = rec.priority_date or rec.publication_date or ""
     phrases = ctrl_f_phrases(rec.abstract or rec.title, rec.matched_keywords, limit=1)
@@ -295,6 +434,13 @@ def _proof_bundle_metadata(rec: PatentRecord, study_id: str) -> dict:
         "doi": rec.doi,
         "pdf_url": rec.pdf_url,
         "uspto_pdf_url": rec.uspto_pdf_url,
+        "evidence_record": evidence.to_dict(),
+        "evidence_tier": evidence.tier.value,
+        "evidence_score": evidence.score,
+        "score_breakdown": evidence.score_breakdown,
+        "hard_gate_failures": evidence.hard_gate_failures,
+        "query_plan_provenance": rec.query_plan_provenance,
+        "normalization_results": rec.normalization_results,
     }
 
 
@@ -946,6 +1092,9 @@ Notes:
             "burned": rec.burned,
             "keywords": rec.matched_keywords,
             "rank_reason": rec.rank_reason,
+            "evidence_tier": rec.evidence_tier,
+            "evidence_score": rec.evidence_score,
+            "hard_gate_failures": rec.hard_gate_failures,
             "url": rec.url,
         }
 
