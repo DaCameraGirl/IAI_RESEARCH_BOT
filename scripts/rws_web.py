@@ -12,6 +12,8 @@ from datetime import datetime
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
+from repo_paths import REPO_ROOT, SCRIPTS_DIR
+from research_policy import is_ready
 
 for _stream in (sys.stdout, sys.stderr):
     try:
@@ -19,8 +21,8 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "scripts"))
+REPO = REPO_ROOT
+sys.path.insert(0, str(SCRIPTS_DIR))
 
 from add_study import AddStudyError, add_study  # noqa: E402
 from check_burned import is_burned, load_burned, patent_key  # noqa: E402
@@ -162,7 +164,7 @@ def _parse_candidates(study_id: str, burned: dict[str, str] | None = None) -> li
                 "doi": doi,
                 "rank": rank,
                 "confidence": conf,
-                "ready": rank >= 1 and conf in ("high", "med") and not burned_hit,
+                "ready": is_ready(rank, conf) and not burned_hit,
                 "burned": burned_hit,
                 "burn_relation": burn_rel,
                 "text": text,

@@ -13,12 +13,19 @@ from dataclasses import dataclass, field
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
+from repo_paths import REPO_ROOT, SCRIPTS_DIR
+from proof_bundle import write_ready_proof_bundle
+from research_policy import (
+    HOLD_MIN_RANK,
+    is_hold,
+    is_ready,
+)
 
-REPO = Path(__file__).resolve().parents[1]
+REPO = REPO_ROOT
 
 import sys
 
-sys.path.insert(0, str(REPO / "scripts"))
+sys.path.insert(0, str(SCRIPTS_DIR))
 from check_burned import is_burned, load_burned, load_citation_seeds, patent_key  # noqa: E402
 from link_builder import crossref_lookup, patent_links  # noqa: E402
 from patent_search import search_queries  # noqa: E402
@@ -67,6 +74,7 @@ class PatentRecord:
     doi: str = "n/a"
     cpc: str = ""
     source_lane: str = ""
+    source_snapshot_html: str = ""
     req_rows: list[dict] = field(default_factory=list)
     citations: list[str] = field(default_factory=list)
     score: int = 0
@@ -76,6 +84,7 @@ class PatentRecord:
     self_rank: int = 0
     confidence: str = "low"
     ready: bool = False
+    rank_reason: str = ""
 
 
 def _fetch_html(url: str) -> str:
@@ -111,6 +120,7 @@ def fetch_patent(pub_id: str) -> PatentRecord:
     except (urllib.error.URLError, TimeoutError) as exc:
         rec.title = f"(fetch failed: {exc})"
         return rec
+    rec.source_snapshot_html = html
 
     title_m = re.search(r'<meta name="DC.title" content="([^"]+)"', html)
     if title_m:
@@ -208,12 +218,11 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
     else:
         rec.confidence = "low"
 
-    rec.ready = (
-        not rec.burned
-        and rec.self_rank >= 1
-        and (yes_count >= 1 or maybe_count >= 2)
-        and rec.confidence in ("high", "med")
+    rec.rank_reason = (
+        f"priority_yes={priority_yes}, req_yes={yes_count}, req_maybe={maybe_count}, "
+        f"matched_keywords={len(matched)}; rank follows requirement coverage, not keyword count alone"
     )
+    rec.ready = not rec.burned and is_ready(rec.self_rank, rec.confidence)
     return rec
 
 
@@ -242,6 +251,51 @@ def date_ok(rec: PatentRecord, critical: str | None) -> bool:
     if not d:
         return True
     return d <= critical
+
+
+def _candidate_access_status(rec: PatentRecord) -> str:
+    if rec.pdf_url or rec.uspto_pdf_url:
+        return "open"
+    if rec.url:
+        return "landing-page-only"
+    return "unknown"
+
+
+def _proof_bundle_metadata(rec: PatentRecord, study_id: str) -> dict:
+    critical = _parse_critical_date(study_id)
+    document_date = rec.priority_date or rec.publication_date or ""
+    phrases = ctrl_f_phrases(rec.abstract or rec.title, rec.matched_keywords, limit=1)
+    return {
+        "publication": rec.pub_id,
+        "title": rec.title,
+        "original_document": rec.url,
+        "source_url": rec.url,
+        "archived_url": "",
+        "retrieval_timestamp": datetime.now().astimezone().isoformat(timespec="seconds"),
+        "publication_date_evidence": {
+            "priority_date": rec.priority_date,
+            "publication_date": rec.publication_date,
+        },
+        "critical_date_comparison": {
+            "critical_date": critical,
+            "document_date_used": document_date,
+            "passes": date_ok(rec, critical),
+        },
+        "shortest_verbatim_highlight": phrases[0] if phrases else "",
+        "page_number": None,
+        "requirement_mapping": rec.req_rows,
+        "duplicate_check_result": {
+            "status": "BURNED" if rec.burned else "CLEAR",
+            "relation": rec.burn_relation,
+        },
+        "family_normalization_result": patent_key(rec.pub_id),
+        "access_status": _candidate_access_status(rec),
+        "reason_for_rank": rec.rank_reason,
+        "source_lane": rec.source_lane,
+        "doi": rec.doi,
+        "pdf_url": rec.pdf_url,
+        "uspto_pdf_url": rec.uspto_pdf_url,
+    }
 
 
 def _req_table(rows: list[dict]) -> str:
@@ -560,7 +614,7 @@ class HuntEngine:
                     self._write_candidate(folder, rec, ready=True, burned=burned)
                 else:
                     self.log(f"BLOCKED write {pub} — known art (hard gate)", "skip")
-            elif rec.self_rank >= HOLD_MIN_RANK or (rec.confidence == "med" and rec.self_rank >= 1):
+            elif is_hold(rec.self_rank, rec.confidence):
                 if self._safe_to_surface(rec, burned):
                     hold.append(rec)
                     self._write_candidate(folder, rec, ready=False, burned=burned)
@@ -891,6 +945,7 @@ Notes:
             "ready": rec.ready,
             "burned": rec.burned,
             "keywords": rec.matched_keywords,
+            "rank_reason": rec.rank_reason,
             "url": rec.url,
         }
 
@@ -905,7 +960,16 @@ Notes:
         safe = patent_key(rec.pub_id)
         prefix = "" if ready else "HOLD_"
         path = cand_dir / f"{prefix}{safe}_RWS_format.txt"
-        path.write_text(draft_candidate(rec, self.study_id), encoding="utf-8")
+        candidate_text = draft_candidate(rec, self.study_id)
+        path.write_text(candidate_text, encoding="utf-8")
+        if ready:
+            bundle_dir = cand_dir / "proof_bundles" / safe
+            write_ready_proof_bundle(
+                bundle_dir,
+                candidate_text=candidate_text,
+                source_snapshot_html=rec.source_snapshot_html,
+                metadata=_proof_bundle_metadata(rec, self.study_id),
+            )
         tier = "READY" if ready else "HOLD"
         self.log(f"Wrote {tier} → {path.name}", "success")
 
