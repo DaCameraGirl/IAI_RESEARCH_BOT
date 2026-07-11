@@ -39,7 +39,7 @@ from study_bot import (  # noqa: E402
 # patent_hunter may not export list_candidates - that's in rws_gui. I'll define here or import from rws_gui logic
 
 PORT = 7842
-BUILD_VERSION = "v1.0 · 2026-07-11-aia-brand"
+BUILD_VERSION = "v1.0 | 2026-07-11-aia-researcher"
 
 _hunt_thread: threading.Thread | None = None
 _hunt_engine: HuntEngine | None = None
@@ -196,6 +196,48 @@ def _burn_count(study_id: str) -> int:
         return len(load_burned(study_id))
     except Exception:
         return 0
+
+
+def _study_ui_copy(meta: dict) -> dict[str, str]:
+    if meta.get("patent"):
+        return {
+            "hunt_label": "Run Deep Hunt",
+            "console_empty": "Run a patent hunt to populate leads, HOLD records, and READY proof candidates.",
+            "empty_candidates": "No research records yet - run a patent hunt.",
+            "sources_html": (
+                '<strong style="color:var(--cream)">Open access:</strong> Google Patents, '
+                "Unpaywall, PubMed, arXiv, DOAJ, RFCs.<br><br>"
+                '<strong style="color:var(--cream)">School login OK:</strong> Elsevier, '
+                "ScienceDirect, Journal of Pharmaceutical Sciences - keep those tagged "
+                '<code style="color:var(--gold)">Access: school</code> for manual PDF pull-through.'
+            ),
+            "how_it_works_html": (
+                '<strong style="color:var(--gold)">Deep Hunt</strong> runs the connected patent '
+                "lanes, burn-checks against known art, and separates <strong>LEAD</strong>, "
+                "<strong>HOLD</strong>, and <strong>READY</strong> evidence. READY still requires "
+                "<strong>rank >= 2</strong>, <strong>confidence high or med</strong>, "
+                "<strong>PROOF</strong> evidence, and no hard-gate failures. Human review is still "
+                "required before submission."
+            ),
+        }
+    return {
+        "hunt_label": "Search Hymn Translations",
+        "console_empty": "Run a hymn search to collect leads worth opening and verifying.",
+        "empty_candidates": "No leads yet - run a hymn search.",
+        "sources_html": (
+            '<strong style="color:var(--cream)">Open access:</strong> archive.org, Google Books, '
+            "HathiTrust, WorldCat, MusicBrainz, Discogs.<br><br>"
+            '<strong style="color:var(--cream)">Human step:</strong> open the actual source, '
+            "confirm the target-language text, date, and translator, then capture a real screenshot "
+            "before treating anything as submittable."
+        ),
+        "how_it_works_html": (
+            '<strong style="color:var(--gold)">Hymn search</strong> prioritizes hymnals and other '
+            "language-specific source books first, then checks per-hymn catalog and archive hits. "
+            "Most results are <strong>LEADS</strong>, not proof. A green light appears only after "
+            "you verify the real source and promote it into submission-ready evidence."
+        ),
+    }
 
 
 def _no_cache_headers(handler: BaseHTTPRequestHandler) -> None:
@@ -585,10 +627,10 @@ footer {
   <header>
     <div class="brand">
       <div class="brand-row">
-        <img src="/assets/genie-mascot.jpg" class="genie-avatar" id="genieAvatar" alt="Research Genie mascot"/>
+        <img src="/assets/genie-mascot.jpg" class="genie-avatar" id="genieAvatar" alt="AIA Research Assistant mascot"/>
         <div>
           <h1>AIA_Research_Assistant <span style="font-size:0.4em;color:var(--gold);font-weight:500;letter-spacing:0.05em">v1.0</span></h1>
-          <p>Your bottled research genie · hunts · burn-checks · drafts candidates</p>
+          <p>Local evidence hunter | burn-checks | drafts reviewable leads</p>
         </div>
       </div>
     </div>
@@ -608,7 +650,7 @@ footer {
           <div class="stats" id="stats"></div>
         </div>
         <div class="actions">
-          <button class="btn btn-hunt" id="huntBtn">⚡ Run Deep Hunt</button>
+          <button class="btn btn-hunt" id="huntBtn">Run Deep Hunt</button>
           <button class="btn btn-round-done" id="roundBtn" style="display:none">✓ Round Done</button>
           <button class="btn btn-stop" id="stopBtn" style="display:none">Stop</button>
         </div>
@@ -621,7 +663,7 @@ footer {
           <button class="tab" data-tab="burn">Burn check</button>
         </div>
         <div class="panel active" id="panel-console">
-          <div class="console" id="console"><div class="empty">Run Deep Hunt — 7 lanes, 150 patents, full req tables + all URLs + HOLD tier.</div></div>
+          <div class="console" id="console"><div class="empty" id="consoleEmpty">Run a patent hunt to populate leads, HOLD records, and READY proof candidates.</div></div>
         </div>
         <div class="panel" id="panel-candidates">
           <div class="candidates" id="candList"></div>
@@ -658,18 +700,16 @@ footer {
       </div>
       <div class="card">
         <h3>Sources</h3>
-        <p style="color:var(--muted);font-size:0.82rem;line-height:1.6">
+        <p style="color:var(--muted);font-size:0.82rem;line-height:1.6" id="sourcesCopy">
           <strong style="color:var(--cream)">Open access:</strong> Google Patents, Unpaywall, PubMed, arXiv, DOAJ, RFCs.<br><br>
-          <strong style="color:var(--cream)">School login OK:</strong> Elsevier, ScienceDirect, Journal of Pharmaceutical Sciences —
-          tag candidates <code style="color:var(--gold)">Access: school</code> so you pull the PDF through your library.
+          <strong style="color:var(--cream)">School login OK:</strong> Elsevier, ScienceDirect, Journal of Pharmaceutical Sciences -
+          keep those tagged <code style="color:var(--gold)">Access: school</code> for manual PDF pull-through.
         </p>
       </div>
       <div class="card">
         <h3>How it works</h3>
-          <p style="color:var(--muted);font-size:0.82rem;line-height:1.6">
-          <strong style="color:var(--gold)">Run Deep Hunt</strong> runs 8 lanes: backward cites, 2-hop + 3-hop graph,
-          assignee sweep, 20 synonym + CPC searches, NPL Crossref (pre-date only), known-cite seed expansion.
-          Inspects up to <strong>500</strong> patents (ULTRA-DEEP mode). READY requires <strong>high</strong> confidence + ≥2 req-yes + priority RR hit.
+          <p style="color:var(--muted);font-size:0.82rem;line-height:1.6" id="howItWorksCopy">
+          <strong style="color:var(--gold)">Deep Hunt</strong> runs the connected patent lanes, burn-checks against known art, and separates <strong>LEAD</strong>, <strong>HOLD</strong>, and <strong>READY</strong> evidence. READY still requires <strong>rank >= 2</strong>, <strong>confidence high or med</strong>, <strong>PROOF</strong> evidence, and no hard-gate failures. Human review is still required before submission.
         </p>
       </div>
     </div>
@@ -698,19 +738,27 @@ async function ensureFreshBuild() {
 
 function $(id) { return document.getElementById(id); }
 
+function currentMeta() {
+  return state?.studies?.[selectedStudy] || null;
+}
+
 function setHuntUi(running, studyId=null) {
   hunting = running;
   huntingStudy = running ? studyId : null;
   if (running && studyId === selectedStudy) {
     $('genieAvatar').classList.add('hunting');
     $('huntBtn').classList.add('running');
-    $('huntBtn').textContent = 'Hunting…';
+    $('huntBtn').textContent = 'Hunting...';
     $('stopBtn').style.display = 'inline-block';
+    $('stopBtn').disabled = false;
+    $('stopBtn').textContent = 'Stop';
     return;
   }
   $('genieAvatar').classList.remove('hunting');
   $('huntBtn').classList.remove('running');
   $('stopBtn').style.display = 'none';
+  $('stopBtn').disabled = false;
+  $('stopBtn').textContent = 'Stop';
 }
 
 function renderState(data) {
@@ -724,6 +772,10 @@ function renderState(data) {
   const criticalTxt = meta.critical_date || 'N/A';
   $('studyMeta').innerHTML = `Patent <strong>${patentTxt}</strong><br>Critical date ${criticalTxt}<br>${meta.burned} burned · folder ${meta.folder}`;
   $('studyFocus').textContent = meta.focus;
+  $('sourcesCopy').innerHTML = meta.sources_html;
+  $('howItWorksCopy').innerHTML = meta.how_it_works_html;
+  const consoleEmpty = $('consoleEmpty');
+  if (consoleEmpty) consoleEmpty.textContent = meta.console_empty;
 
   if (meta.patent) {
     $('stats').innerHTML = `
@@ -766,10 +818,10 @@ function renderState(data) {
   const huntBtn = $('huntBtn');
   if (meta.blocked) {
     huntBtn.disabled = true;
-    huntBtn.textContent = '⚠ Study blocked — paste brief';
+    huntBtn.textContent = 'Study blocked - paste brief';
   } else if (!hunting) {
     huntBtn.disabled = false;
-    huntBtn.textContent = meta.patent ? '⚡ Run Deep Hunt' : '⚡ Search Hymn Translations';
+    huntBtn.textContent = `⚡ ${meta.hunt_label}`;
     huntBtn.classList.remove('running');
   }
   setHuntUi(Boolean(data.hunt_running), data.hunt_study || null);
@@ -778,7 +830,7 @@ function renderState(data) {
     if (!meta.blocked) {
       huntBtn.textContent = Boolean(data.hunt_running) && data.hunt_study && data.hunt_study !== selectedStudy
         ? `⚡ Hunt running on ${data.hunt_study}`
-        : (meta.patent ? '⚡ Run Deep Hunt' : '⚡ Search Hymn Translations');
+        : `⚡ ${meta.hunt_label}`;
     }
   }
 }
@@ -812,7 +864,7 @@ async function loadCandidates() {
   }
   data.candidates = clear;
   if (!data.candidates.length) {
-    list.innerHTML = '<div class="empty">No candidates yet — run a hunt.</div>';
+    list.innerHTML = `<div class="empty">${currentMeta()?.empty_candidates || 'No research records yet.'}</div>`;
     prev.style.display = 'none';
     return;
   }
@@ -879,6 +931,8 @@ function pollLogs() {
 
 $('huntBtn').onclick = startHunt;
 $('stopBtn').onclick = async () => {
+  $('stopBtn').disabled = true;
+  $('stopBtn').textContent = 'Stopping...';
   await api('/api/hunt/stop', {method:'POST'});
   addLog({t: new Date().toLocaleTimeString('en-US', {hour12:false}), msg: 'Stop requested', level: 'warn'});
 };
@@ -900,7 +954,7 @@ $('addStudyBtn').onclick = async () => {
     return;
   }
   $('addStudyBtn').disabled = true;
-  $('addStudyBtn').textContent = 'Adding…';
+  $('addStudyBtn').textContent = 'Adding...';
   const data = await api('/api/add-study', {
     method: 'POST',
     headers: {'Content-Type':'application/json'},
@@ -910,8 +964,8 @@ $('addStudyBtn').onclick = async () => {
   $('addStudyBtn').textContent = 'Add Study';
   if (data.ok) {
     result.className = 'ok';
-    result.textContent = `Added ${data.study_id} → ${data.folder} (${data.type})`
-      + (data.blocked ? ' — BLOCKED, needs review: ' + data.warnings.join('; ') : '');
+    result.textContent = `Added ${data.study_id} -> ${data.folder} (${data.type})`
+      + (data.blocked ? ' - BLOCKED, needs review: ' + data.warnings.join('; ') : '');
     $('newStudyId').value = '';
     $('newStudyTitle').value = '';
     $('newStudyCsv').value = '';
@@ -1003,6 +1057,7 @@ class RWSHandler(BaseHTTPRequestHandler):
             studies = {}
             for sid in state["queue"]:
                 meta = STUDY_META[sid]
+                ui = _study_ui_copy(meta)
                 st = state["studies"][sid]
                 blocked = is_blocked(sid)
                 cands = _parse_candidates(sid)
@@ -1025,6 +1080,7 @@ class RWSHandler(BaseHTTPRequestHandler):
                     "hold_candidates": hold,
                     "ready_candidates": ready,
                     "burned": _burn_count(sid),
+                    **ui,
                 }
             _json_response(
                 self,

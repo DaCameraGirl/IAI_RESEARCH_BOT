@@ -140,6 +140,7 @@ class TestHymnHuntEngine(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_run_writes_candidate_screen_and_hunt_log(self) -> None:
+        logs = []
         with patch.object(hymn_hunter, "search_hymnal_sources", return_value=[
             {"source": "archive.org", "title": "Russian Hymnal Collection", "url": "https://archive.org/details/y"}
         ]), patch.object(hymn_hunter, "search_internet_archive", return_value=[
@@ -150,7 +151,7 @@ class TestHymnHuntEngine(unittest.TestCase):
              patch.object(hymn_hunter, "search_musicbrainz_hymn", return_value=[]), \
              patch.object(hymn_hunter, "search_discogs_hymn", return_value=[]), \
              patch("time.sleep", return_value=None):
-            engine = hymn_hunter.HymnHuntEngine("26006", on_log=lambda m, l: None)
+            engine = hymn_hunter.HymnHuntEngine("26006", on_log=lambda m, l: logs.append((m, l)))
             result = engine.run()
 
         self.assertEqual(result["hymns_searched"], 2)
@@ -174,6 +175,9 @@ class TestHymnHuntEngine(unittest.TestCase):
         lead_file = next(f for f in cand_files if not f.name.startswith("HYMNAL_SOURCE"))
         lead_text = lead_file.read_text(encoding="utf-8")
         self.assertIn("Hymn:", lead_text)
+        messages = [m for m, _level in logs]
+        self.assertTrue(any("checking archive.org" in m for m in messages))
+        self.assertTrue(any("checking Google Books" in m for m in messages))
 
     def test_missing_hymn_list_logs_warning_no_crash(self) -> None:
         (self.tmp_path / "26006_Test" / "HYMN_LIST.txt").unlink()

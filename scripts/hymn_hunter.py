@@ -49,6 +49,7 @@ USER_AGENT = (
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
 )
 REQUEST_PAUSE = 0.5
+REQUEST_TIMEOUT = 8
 MAX_HYMNS_PER_ROUND = 125
 LOW_SIGNAL_TITLE_PATTERNS = (
     "rock pop folk songs",
@@ -69,7 +70,7 @@ HYMNAL_SIGNAL_TERMS = (
 )
 
 
-def _get_json(url: str, timeout: int = 20) -> dict:
+def _get_json(url: str, timeout: int = REQUEST_TIMEOUT) -> dict:
     req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
     with urllib.request.urlopen(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8", errors="replace"))
@@ -472,6 +473,33 @@ class HymnHuntEngine:
     def stop(self) -> None:
         self.stopped = True
 
+    def _pause(self, seconds: float = REQUEST_PAUSE) -> bool:
+        """Sleep in short slices so stop requests land quickly."""
+        remaining = max(seconds, 0.0)
+        while remaining > 0:
+            if self.stopped:
+                return False
+            step = min(0.05, remaining)
+            time.sleep(step)
+            remaining -= step
+        return not self.stopped
+
+    def _run_source_search(
+        self,
+        hymn: str,
+        label: str,
+        fn: Callable[..., list[dict]],
+        *args,
+    ) -> tuple[list[dict], bool]:
+        if self.stopped:
+            return [], False
+        self.log(f"  {hymn}: checking {label}", "info")
+        hits = fn(*args)
+        if not self._pause():
+            self.log("Hunt stopped by user", "warn")
+            return hits, False
+        return hits, True
+
     def _load_hymn_list(self, folder: Path) -> list[str]:
         path = folder / "HYMN_LIST.txt"
         if not path.exists():
@@ -498,26 +526,46 @@ class HymnHuntEngine:
         self.log(f"Lane 1: searching for {language} hymnal sources (highest-signal query)", "lane")
         hymnal_sources = search_hymnal_sources(language)
         self.log(f"  Found {len(hymnal_sources)} candidate hymnal source(s)", "info")
-        time.sleep(REQUEST_PAUSE)
+        if not self._pause():
+            self.log("Hunt stopped by user", "warn")
+            return {"hymns_searched": 0, "leads_found": 0, "hymnal_sources": len(hymnal_sources)}
 
-        self.log(f"Lane 2: searching each of {len(hymns)} hymns individually (4 sources)", "lane")
+        self.log(f"Lane 2: searching each of {len(hymns)} hymns individually (6 sources)", "lane")
         leads: list[dict] = []
         for hymn in hymns[:MAX_HYMNS_PER_ROUND]:
             if self.stopped:
                 self.log("Hunt stopped by user", "warn")
                 break
+            self.log(f"  {hymn}: checking archive.org", "info")
             hits = search_internet_archive(hymn, language)
-            time.sleep(REQUEST_PAUSE)
+            if not self._pause():
+                self.log("Hunt stopped by user", "warn")
+                break
+            self.log(f"  {hymn}: checking Google Books", "info")
             hits += search_google_books(hymn, language, language_code)
-            time.sleep(REQUEST_PAUSE)
+            if not self._pause():
+                self.log("Hunt stopped by user", "warn")
+                break
+            self.log(f"  {hymn}: checking HathiTrust", "info")
             hits += search_hathitrust(hymn, language)
-            time.sleep(REQUEST_PAUSE)
+            if not self._pause():
+                self.log("Hunt stopped by user", "warn")
+                break
+            self.log(f"  {hymn}: checking WorldCat", "info")
             hits += search_worldcat(hymn, language)
-            time.sleep(REQUEST_PAUSE)
+            if not self._pause():
+                self.log("Hunt stopped by user", "warn")
+                break
+            self.log(f"  {hymn}: checking MusicBrainz", "info")
             hits += search_musicbrainz_hymn(hymn, language)
-            time.sleep(REQUEST_PAUSE)
+            if not self._pause():
+                self.log("Hunt stopped by user", "warn")
+                break
+            self.log(f"  {hymn}: checking Discogs", "info")
             hits += search_discogs_hymn(hymn, language)
-            time.sleep(REQUEST_PAUSE)
+            if not self._pause():
+                self.log("Hunt stopped by user", "warn")
+                break
             hits = filter_hymn_hits(hits, language)
             self.hymns_searched += 1
             if hits:

@@ -34,6 +34,18 @@ class TestRwsWebCandidateParsing(unittest.TestCase):
             tier = rws_web._candidate_tier(path, path.read_text(encoding="utf-8"), 1, "med", False)
             self.assertEqual(tier, "HOLD")
 
+    def test_study_ui_copy_for_patent_uses_ready_rules(self) -> None:
+        ui = rws_web._study_ui_copy({"patent": "US1234567"})
+        self.assertEqual(ui["hunt_label"], "Run Deep Hunt")
+        self.assertIn("rank >= 2", ui["how_it_works_html"])
+        self.assertIn("PROOF", ui["how_it_works_html"])
+
+    def test_study_ui_copy_for_hymn_uses_lead_language(self) -> None:
+        ui = rws_web._study_ui_copy({"patent": None})
+        self.assertEqual(ui["hunt_label"], "Search Hymn Translations")
+        self.assertIn("LEADS", ui["how_it_works_html"])
+        self.assertIn("archive.org", ui["sources_html"])
+
 
 if __name__ == "__main__":
     unittest.main()
