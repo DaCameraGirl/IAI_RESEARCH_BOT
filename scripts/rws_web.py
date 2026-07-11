@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""RWS Research Bot — local web app that actually runs patent hunts."""
+"""AIA_Research_Assistant — local web app that actually runs patent hunts."""
 
 from __future__ import annotations
 
@@ -39,12 +39,13 @@ from study_bot import (  # noqa: E402
 # patent_hunter may not export list_candidates - that's in rws_gui. I'll define here or import from rws_gui logic
 
 PORT = 7842
-BUILD_VERSION = "v1.0 · 2026-07-09-ultra-deep"
+BUILD_VERSION = "v1.0 · 2026-07-11-aia-brand"
 
 _hunt_thread: threading.Thread | None = None
 _hunt_engine: HuntEngine | None = None
 _log_queue: queue.Queue[dict] = queue.Queue()
 _hunt_result: dict | None = None
+_hunt_study_id: str | None = None
 
 
 def _study_patent_key(study_id: str) -> str | None:
@@ -110,10 +111,24 @@ def _parse_hymn_lead(path: Path, text: str) -> dict:
         "rank": 0,
         "confidence": "low",
         "ready": False,
+        "tier": "LEAD",
         "burned": False,
         "burn_relation": "",
         "text": text,
     }
+
+
+def _candidate_tier(path: Path, text: str, rank: int, confidence: str, ready: bool) -> str:
+    if ready:
+        return "READY"
+    if path.name.startswith(("NPL_", "PRODUCT_", "MUSIC_", "LEAD_")):
+        return "LEAD"
+    text_l = text.lower()
+    if any(marker in text_l for marker in ("npl lead", "lead only", "unverified")):
+        return "LEAD"
+    if path.name.startswith("HOLD_") or rank > 0 or confidence in {"high", "med"}:
+        return "HOLD"
+    return "LEAD"
 
 
 def _parse_candidates(study_id: str, burned: dict[str, str] | None = None) -> list[dict]:
@@ -154,6 +169,8 @@ def _parse_candidates(study_id: str, burned: dict[str, str] | None = None) -> li
         if burned_hit:
             path.unlink(missing_ok=True)
             continue
+        ready = is_ready(rank, conf) and not burned_hit
+        tier = _candidate_tier(path, text, rank, conf, ready)
         out.append(
             {
                 "file": path.name,
@@ -164,7 +181,8 @@ def _parse_candidates(study_id: str, burned: dict[str, str] | None = None) -> li
                 "doi": doi,
                 "rank": rank,
                 "confidence": conf,
-                "ready": is_ready(rank, conf) and not burned_hit,
+                "ready": ready,
+                "tier": tier,
                 "burned": burned_hit,
                 "burn_relation": burn_rel,
                 "text": text,
@@ -207,12 +225,13 @@ def _html_response(handler: BaseHTTPRequestHandler, html: str) -> None:
 
 
 def _start_hunt(study_id: str) -> dict:
-    global _hunt_thread, _hunt_engine, _hunt_result
+    global _hunt_thread, _hunt_engine, _hunt_result, _hunt_study_id
 
     if _hunt_thread and _hunt_thread.is_alive():
         return {"ok": False, "error": "Hunt already running"}
 
     _hunt_result = None
+    _hunt_study_id = study_id
     while not _log_queue.empty():
         try:
             _log_queue.get_nowait()
@@ -225,7 +244,7 @@ def _start_hunt(study_id: str) -> dict:
         )
 
     def run() -> None:
-        global _hunt_result
+        global _hunt_result, _hunt_study_id
         meta = STUDY_META[study_id]
         if meta.get("type") == "copyright":
             engine = HymnHuntEngine(study_id, on_log=on_log)
@@ -239,6 +258,8 @@ def _start_hunt(study_id: str) -> dict:
                 save_state(state)
             except Exception as exc:
                 on_log(f"Hunt error: {exc}", "error")
+            finally:
+                _hunt_study_id = study_id
             return
 
         engine = HuntEngine(study_id, on_log=on_log)
@@ -247,12 +268,14 @@ def _start_hunt(study_id: str) -> dict:
             _hunt_result = engine.run_deep()
             state = load_state()
             if study_id in state["studies"]:
-                state["studies"][study_id]["candidates_found"] = _hunt_result.get("ready", 0)
+                state["studies"][study_id]["candidates_found"] = len(_parse_candidates(study_id))
                 state["studies"][study_id]["rounds_completed"] = state["studies"][study_id].get("rounds_completed", 0) + 1
             save_state(state)
         except Exception as exc:
             on_log(f"Hunt error: {exc}", "error")
             _hunt_result = {"error": str(exc)}
+        finally:
+            _hunt_study_id = study_id
 
     _hunt_thread = threading.Thread(target=run, daemon=True)
     _hunt_thread.start()
@@ -264,7 +287,7 @@ INDEX_HTML = """<!DOCTYPE html>
 <head>
 <meta charset="utf-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1"/>
-<title>RWS Research Bot</title>
+<title>AIA_Research_Assistant</title>
 <link rel="icon" href="/assets/genie-mascot.jpg" type="image/jpeg"/>
 <link rel="preconnect" href="https://fonts.googleapis.com"/>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,700;1,500&family=Outfit:wght@300;400;500;600&display=swap" rel="stylesheet"/>
@@ -457,6 +480,34 @@ header {
   transition: border-color 0.2s;
 }
 .cand:hover, .cand.sel { border-color: rgba(212,168,83,0.4); }
+.cand-head { display: flex; align-items: center; gap: 10px; }
+.cand-signal {
+  width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+  background: var(--muted);
+  box-shadow: 0 0 8px rgba(139,149,168,0.45);
+}
+.cand-signal.ready {
+  background: var(--green);
+  box-shadow: 0 0 10px rgba(94,207,138,0.7);
+  animation: cand-pulse 1s ease-in-out infinite;
+}
+.cand-signal.lead {
+  background: var(--blue);
+  box-shadow: 0 0 8px rgba(96,165,250,0.55);
+}
+.cand-signal.hold {
+  background: var(--gold);
+  box-shadow: 0 0 8px rgba(212,168,83,0.55);
+}
+.cand-signal.burned {
+  background: var(--red);
+  box-shadow: 0 0 10px rgba(240,113,120,0.7);
+  animation: none;
+}
+@keyframes cand-pulse {
+  0%, 100% { opacity: 0.55; transform: scale(0.95); }
+  50% { opacity: 1; transform: scale(1.15); }
+}
 .cand .pub { font-weight: 600; font-size: 0.9rem; }
 .cand .ttl { color: var(--muted); font-size: 0.8rem; margin-top: 4px; }
 .badge {
@@ -536,7 +587,7 @@ footer {
       <div class="brand-row">
         <img src="/assets/genie-mascot.jpg" class="genie-avatar" id="genieAvatar" alt="Research Genie mascot"/>
         <div>
-          <h1>RWS Research Bot <span style="font-size:0.4em;color:var(--gold);font-weight:500;letter-spacing:0.05em">v1.0</span></h1>
+          <h1>AIA_Research_Assistant <span style="font-size:0.4em;color:var(--gold);font-weight:500;letter-spacing:0.05em">v1.0</span></h1>
           <p>Your bottled research genie · hunts · burn-checks · drafts candidates</p>
         </div>
       </div>
@@ -623,13 +674,14 @@ footer {
       </div>
     </div>
   </div>
-  <footer>RWS Research Bot · local · port """ + str(PORT) + """ · <span id="buildVer">""" + BUILD_VERSION + """</span></footer>
+  <footer>AIA_Research_Assistant · local · port """ + str(PORT) + """ · <span id="buildVer">""" + BUILD_VERSION + """</span></footer>
 </div>
 <script>
 let state = null;
 let selectedStudy = null;
 let pollTimer = null;
 let hunting = false;
+let huntingStudy = null;
 const PAGE_VERSION = """ + '"' + BUILD_VERSION + '"' + """;
 
 async function api(path, opts={}) {
@@ -646,6 +698,21 @@ async function ensureFreshBuild() {
 
 function $(id) { return document.getElementById(id); }
 
+function setHuntUi(running, studyId=null) {
+  hunting = running;
+  huntingStudy = running ? studyId : null;
+  if (running && studyId === selectedStudy) {
+    $('genieAvatar').classList.add('hunting');
+    $('huntBtn').classList.add('running');
+    $('huntBtn').textContent = 'Hunting…';
+    $('stopBtn').style.display = 'inline-block';
+    return;
+  }
+  $('genieAvatar').classList.remove('hunting');
+  $('huntBtn').classList.remove('running');
+  $('stopBtn').style.display = 'none';
+}
+
 function renderState(data) {
   state = data;
   selectedStudy = selectedStudy || data.current;
@@ -658,11 +725,20 @@ function renderState(data) {
   $('studyMeta').innerHTML = `Patent <strong>${patentTxt}</strong><br>Critical date ${criticalTxt}<br>${meta.burned} burned · folder ${meta.folder}`;
   $('studyFocus').textContent = meta.focus;
 
-  $('stats').innerHTML = `
-    <div class="stat"><div class="n">${meta.rounds}</div><div class="l">Rounds</div></div>
-    <div class="stat"><div class="n">${meta.ready_candidates}</div><div class="l">Ready</div></div>
-    <div class="stat"><div class="n">${meta.burned}</div><div class="l">Burned</div></div>
-  `;
+  if (meta.patent) {
+    $('stats').innerHTML = `
+      <div class="stat"><div class="n">${meta.rounds}</div><div class="l">Rounds</div></div>
+      <div class="stat"><div class="n">${meta.lead_candidates}</div><div class="l">Leads</div></div>
+      <div class="stat"><div class="n">${meta.ready_candidates}</div><div class="l">Ready</div></div>
+      <div class="stat"><div class="n">${meta.burned}</div><div class="l">Burned</div></div>
+    `;
+  } else {
+    $('stats').innerHTML = `
+      <div class="stat"><div class="n">${meta.rounds}</div><div class="l">Rounds</div></div>
+      <div class="stat"><div class="n">${meta.candidates_total}</div><div class="l">Leads</div></div>
+      <div class="stat"><div class="n">${meta.burned}</div><div class="l">Burned</div></div>
+    `;
+  }
 
   const pills = $('pills');
   pills.innerHTML = '';
@@ -695,6 +771,15 @@ function renderState(data) {
     huntBtn.disabled = false;
     huntBtn.textContent = meta.patent ? '⚡ Run Deep Hunt' : '⚡ Search Hymn Translations';
     huntBtn.classList.remove('running');
+  }
+  setHuntUi(Boolean(data.hunt_running), data.hunt_study || null);
+  if (!hunting || huntingStudy !== selectedStudy) {
+    huntBtn.disabled = !!meta.blocked || (Boolean(data.hunt_running) && data.hunt_study && data.hunt_study !== selectedStudy);
+    if (!meta.blocked) {
+      huntBtn.textContent = Boolean(data.hunt_running) && data.hunt_study && data.hunt_study !== selectedStudy
+        ? `⚡ Hunt running on ${data.hunt_study}`
+        : (meta.patent ? '⚡ Run Deep Hunt' : '⚡ Search Hymn Translations');
+    }
   }
 }
 
@@ -742,9 +827,10 @@ async function loadCandidates() {
     if (c.text && c.text.includes('Espacenet URL:')) { const m = c.text.match(/Espacenet URL: (https?\\S+)/); if (m) links.push(`<a href="${m[1]}" target="_blank">Espacenet</a>`); }
     if (c.doi && c.doi !== 'n/a' && c.doi !== 'not found') links.push(`<a href="https://doi.org/${c.doi}" target="_blank">DOI</a>`);
     const linkHtml = links.length ? `<div class="cand-links">${links.join('')}</div>` : '';
-    const badgeCls = c.burned ? 'burned' : (c.ready ? 'ready' : 'hold');
-    const badgeTxt = c.burned ? 'BURNED' : (c.ready ? 'READY' : 'R' + c.rank + '/' + c.confidence);
-    div.innerHTML = `<div class="pub">${c.publication}</div><div class="ttl">${c.title || c.file}</div>
+    const badgeCls = c.burned ? 'burned' : (c.ready ? 'ready' : (c.tier === 'LEAD' ? 'hold' : 'hold'));
+    const badgeTxt = c.burned ? 'BURNED' : (c.ready ? 'READY' : (c.tier === 'LEAD' ? 'LEAD' : ('R' + c.rank + '/' + c.confidence)));
+    const signalCls = c.burned ? 'cand-signal burned' : (c.ready ? 'cand-signal ready' : (c.tier === 'LEAD' ? 'cand-signal lead' : 'cand-signal hold'));
+    div.innerHTML = `<div class="cand-head"><span class="${signalCls}"></span><div class="pub">${c.publication}</div></div><div class="ttl">${c.title || c.file}</div>
       <span class="badge ${badgeCls}">${badgeTxt}</span>${linkHtml}`;
     div.onclick = () => {
       document.querySelectorAll('.cand').forEach(x => x.classList.remove('sel'));
@@ -759,14 +845,16 @@ async function loadCandidates() {
 }
 
 async function startHunt() {
-  hunting = true;
-  $('genieAvatar').classList.add('hunting');
-  $('huntBtn').classList.add('running');
-  $('huntBtn').textContent = 'Hunting…';
-  $('stopBtn').style.display = 'inline-block';
+  setHuntUi(true, selectedStudy);
   $('console').innerHTML = '';
   document.querySelector('[data-tab="console"]').click();
-  await api('/api/hunt/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({study: selectedStudy}) });
+  const started = await api('/api/hunt/start', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({study: selectedStudy}) });
+  if (!started.ok) {
+    setHuntUi(false, null);
+    addLog({t: new Date().toLocaleTimeString('en-US', {hour12:false}), msg: started.error || 'Hunt failed to start', level: 'error'});
+    loadState();
+    return;
+  }
   pollLogs();
 }
 
@@ -777,11 +865,9 @@ function pollLogs() {
     data.logs.forEach(e => {
       if (!e._seen) { e._seen = true; addLog(e); }
     });
+    setHuntUi(Boolean(data.running), data.hunt_study || null);
     if (!data.running && hunting) {
-      hunting = false;
-      $('genieAvatar').classList.remove('hunting');
-      $('huntBtn').classList.remove('running');
-      $('stopBtn').style.display = 'none';
+      setHuntUi(false, null);
       $('roundBtn').style.display = 'inline-block';
       $('roundBtn').classList.add('blink');
       clearInterval(pollTimer);
@@ -792,7 +878,10 @@ function pollLogs() {
 }
 
 $('huntBtn').onclick = startHunt;
-$('stopBtn').onclick = async () => { await api('/api/hunt/stop', {method:'POST'}); };
+$('stopBtn').onclick = async () => {
+  await api('/api/hunt/stop', {method:'POST'});
+  addLog({t: new Date().toLocaleTimeString('en-US', {hour12:false}), msg: 'Stop requested', level: 'warn'});
+};
 $('roundBtn').onclick = () => { 
   $('roundBtn').style.display = 'none'; 
   $('roundBtn').classList.remove('blink'); 
@@ -852,7 +941,11 @@ document.querySelectorAll('.tab').forEach(t => {
   };
 });
 
-ensureFreshBuild().then(() => loadState()).then(loadCandidates);
+ensureFreshBuild().then(async () => {
+  await loadState();
+  await loadCandidates();
+  if (state?.hunt_running) pollLogs();
+});
 </script>
 </body>
 </html>"""
@@ -914,9 +1007,12 @@ class RWSHandler(BaseHTTPRequestHandler):
                 blocked = is_blocked(sid)
                 cands = _parse_candidates(sid)
                 ready = sum(1 for c in cands if c["ready"])
+                leads = sum(1 for c in cands if c.get("tier") == "LEAD")
+                hold = sum(1 for c in cands if c.get("tier") == "HOLD")
                 studies[sid] = {
                     "title": meta["title"],
                     "patent": meta["patent"],
+                    "type": meta.get("type", ""),
                     "critical_date": meta["critical_date"],
                     "focus": meta["focus"],
                     "folder": meta["folder"],
@@ -924,6 +1020,9 @@ class RWSHandler(BaseHTTPRequestHandler):
                     "blocked": blocked,
                     "rounds": st.get("rounds_completed", 0),
                     "candidates": st.get("candidates_found", 0),
+                    "candidates_total": len(cands),
+                    "lead_candidates": leads,
+                    "hold_candidates": hold,
                     "ready_candidates": ready,
                     "burned": _burn_count(sid),
                 }
@@ -934,6 +1033,7 @@ class RWSHandler(BaseHTTPRequestHandler):
                     "queue": state["queue"],
                     "studies": studies,
                     "hunt_running": _hunt_thread is not None and _hunt_thread.is_alive(),
+                    "hunt_study": _hunt_study_id,
                     "version": BUILD_VERSION,
                 },
             )
@@ -955,7 +1055,7 @@ class RWSHandler(BaseHTTPRequestHandler):
             running = _hunt_thread is not None and _hunt_thread.is_alive()
             _json_response(
                 self,
-                {"logs": logs, "running": running, "result": _hunt_result},
+                {"logs": logs, "running": running, "result": _hunt_result, "hunt_study": _hunt_study_id},
             )
             return
 
@@ -1044,7 +1144,7 @@ def main() -> None:
     _startup_purge()
     server = ThreadingHTTPServer(("127.0.0.1", PORT), RWSHandler)
     url = f"http://127.0.0.1:{PORT}"
-    print(f"\n  RWS Research Bot → {url}\n")
+    print(f"\n  AIA_Research_Assistant → {url}\n")
     threading.Timer(0.8, lambda: webbrowser.open(url)).start()
     try:
         server.serve_forever()

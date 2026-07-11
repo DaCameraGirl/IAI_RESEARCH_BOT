@@ -26,6 +26,7 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 from typing import Callable
+from repo_paths import REPO_ROOT, SCRIPTS_DIR
 
 for _stream in (sys.stdout, sys.stderr):
     try:
@@ -33,8 +34,8 @@ for _stream in (sys.stdout, sys.stderr):
     except (AttributeError, ValueError):
         pass
 
-REPO = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(REPO / "scripts"))
+REPO = REPO_ROOT
+sys.path.insert(0, str(SCRIPTS_DIR))
 from study_bot import STUDY_META  # noqa: E402
 
 LogFn = Callable[[str, str], None]
@@ -49,6 +50,23 @@ USER_AGENT = (
 )
 REQUEST_PAUSE = 0.5
 MAX_HYMNS_PER_ROUND = 125
+LOW_SIGNAL_TITLE_PATTERNS = (
+    "rock pop folk songs",
+    "singer's library of song",
+    "liederprojekt",
+)
+HYMNAL_SIGNAL_TERMS = (
+    "hymn",
+    "hymnal",
+    "cantici",
+    "innario",
+    "laudario",
+    "gesangbuch",
+    "cantique",
+    "himnario",
+    "hinario",
+    "himny",
+)
 
 
 def _get_json(url: str, timeout: int = 20) -> dict:
@@ -405,6 +423,41 @@ def search_discogs_hymn(hymn_title: str, language: str, rows: int = 5) -> list[d
         return []
 
 
+def _language_signal_terms(language: str) -> tuple[str, ...]:
+    terms = {
+        "Italian": ("italian", "italiano", "italiana", "salmi", "cantici", "inno", "innario"),
+        "Russian": ("russian", "russian empire", "russ", "гимн", "песн", "himny"),
+        "Cebuano": ("cebuano", "binisaya", "bisaya", "awit", "himno"),
+    }
+    return terms.get(language, (language.lower(),))
+
+
+def filter_hymn_hits(hits: list[dict], language: str) -> list[dict]:
+    """Suppress obvious generic anthology noise and prioritize language/hymnal signals."""
+    signal_terms = _language_signal_terms(language)
+    filtered: list[dict] = []
+    seen: set[tuple[str, str]] = set()
+    for hit in hits:
+        title = str(hit.get("title", ""))
+        url = str(hit.get("url", ""))
+        source = str(hit.get("source", ""))
+        key = (title.strip().lower(), url.strip().lower())
+        if key in seen:
+            continue
+        seen.add(key)
+
+        title_l = title.lower()
+        source_l = source.lower()
+        has_signal = any(term in title_l for term in signal_terms) or any(term in title_l for term in HYMNAL_SIGNAL_TERMS)
+        low_signal = any(term in title_l for term in LOW_SIGNAL_TITLE_PATTERNS)
+        if low_signal and not has_signal:
+            continue
+        if source_l in {"musicbrainz", "discogs"} and not has_signal:
+            continue
+        filtered.append(hit)
+    return filtered
+
+
 class HymnHuntEngine:
     def __init__(self, study_id: str, on_log: LogFn | None = None) -> None:
         self.study_id = study_id
@@ -465,6 +518,7 @@ class HymnHuntEngine:
             time.sleep(REQUEST_PAUSE)
             hits += search_discogs_hymn(hymn, language)
             time.sleep(REQUEST_PAUSE)
+            hits = filter_hymn_hits(hits, language)
             self.hymns_searched += 1
             if hits:
                 leads.append({"hymn": hymn, "hits": hits})

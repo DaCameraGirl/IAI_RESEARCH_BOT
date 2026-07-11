@@ -76,6 +76,23 @@ class TestSearchFunctions(unittest.TestCase):
             hymn_hunter.search_internet_archive("Amazing Grace", "Russian")
         self.assertIn("mediatype", captured["url"])
 
+    def test_filter_hymn_hits_suppresses_low_signal_anthologies(self) -> None:
+        hits = [
+            {
+                "source": "archive.org",
+                "title": "Rock Pop Folk Songs et cetera. Vol. 1/3 - 2.622 Songs (pvg)",
+                "url": "https://archive.org/details/noise",
+            },
+            {
+                "source": "archive.org",
+                "title": 'A New Italian hymnal of "Salmi e Cantici"',
+                "url": "https://archive.org/details/italian-hymnal",
+            },
+        ]
+        filtered = hymn_hunter.filter_hymn_hits(hits, "Italian")
+        self.assertEqual(len(filtered), 1)
+        self.assertIn("Italian hymnal", filtered[0]["title"])
+
 
 class TestHymnHuntEngine(unittest.TestCase):
     def setUp(self) -> None:
