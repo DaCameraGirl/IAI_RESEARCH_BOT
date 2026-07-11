@@ -530,6 +530,17 @@ class HymnHuntEngine:
             return []
         return [ln.strip() for ln in path.read_text(encoding="utf-8").splitlines() if ln.strip()]
 
+    def _persist_progress(
+        self,
+        folder: Path,
+        language: str,
+        hymnal_sources: list[dict],
+        leads: list[dict],
+    ) -> None:
+        """Persist the current library state during the run so the UI updates live."""
+        self._write_candidate_files(folder, language, hymnal_sources, leads)
+        self._write_candidate_screen(folder, hymnal_sources, leads)
+
     def run(self) -> dict:
         meta = STUDY_META[self.study_id]
         folder = REPO / meta["folder"]
@@ -550,6 +561,7 @@ class HymnHuntEngine:
         self.log(f"Lane 1: searching for {language} hymnal sources (highest-signal query)", "lane")
         hymnal_sources = search_hymnal_sources(language)
         self.log(f"  Found {len(hymnal_sources)} candidate hymnal source(s)", "info")
+        self._persist_progress(folder, language, hymnal_sources, [])
         if not self._pause():
             self.log("Hunt stopped by user", "warn")
             return {"hymns_searched": 0, "leads_found": 0, "hymnal_sources": len(hymnal_sources)}
@@ -596,11 +608,13 @@ class HymnHuntEngine:
                 leads.append({"hymn": hymn, "hits": hits})
                 self.leads_found += len(hits)
                 self.log(f"  {hymn}: {len(hits)} candidate source(s)", "info")
+                self._persist_progress(folder, language, hymnal_sources, leads)
+            elif self.hymns_searched == 1 or self.hymns_searched % 10 == 0:
+                self._write_candidate_screen(folder, hymnal_sources, leads)
             if self.hymns_searched % 10 == 0:
                 self.log(f"Searched {self.hymns_searched}/{len(hymns)} hymns…", "info")
 
-        self._write_candidate_files(folder, language, hymnal_sources, leads)
-        self._write_candidate_screen(folder, hymnal_sources, leads)
+        self._persist_progress(folder, language, hymnal_sources, leads)
         self._update_hunt_log(folder, len(hymns))
 
         self.log(

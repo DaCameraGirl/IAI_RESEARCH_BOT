@@ -942,6 +942,7 @@ function pollLogs() {
       huntLogsByStudy[sid] = huntLogsByStudy[sid] || [];
       huntLogsByStudy[sid].push(e);
     });
+    await loadState();
     renderConsole();
     setHuntUi(Boolean(data.running), selectedStudy);
     if (!data.running && hunting && huntingStudy === selectedStudy) {
