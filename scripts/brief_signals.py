@@ -173,14 +173,6 @@ def _extract_assignees(text: str) -> list[str]:
     return _dedupe(hits)
 
 
-def _requirement_contexts(text: str, req_id: str) -> list[str]:
-    contexts: list[str] = []
-    for paragraph in _split_paragraphs(text):
-        if re.search(rf"(?i)\b(?:rr|requirement|research requirement)\s*{re.escape(req_id)}\b", paragraph):
-            contexts.append(paragraph)
-    return contexts
-
-
 def _build_keyword_pool(text: str) -> list[str]:
     phrases = _extract_quoted_phrases(text)
     phrases += _extract_anchor_phrases(text)
@@ -312,14 +304,16 @@ def augment_meta_from_brief(meta: dict, brief_path: Path) -> dict:
     assignees.extend(_extract_assignees(brief_text))
     augmented["assignees"] = _dedupe(assignees)
 
+    extracted_requirement_map = {
+        str(req["id"]): req for req in extract_requirements_from_brief_text(brief_text)
+    }
     reqs = []
     for req in augmented.get("requirements", []):
         req_copy = copy.deepcopy(req)
-        contexts = _requirement_contexts(brief_text, str(req_copy.get("id", "")))
-        if contexts:
+        extracted = extracted_requirement_map.get(str(req_copy.get("id", "")))
+        if extracted:
             req_keywords = list(req_copy.get("keywords", []))
-            for context in contexts:
-                req_keywords.extend(_build_keyword_pool(context))
+            req_keywords.extend(extracted.get("keywords", []))
             req_copy["keywords"] = _dedupe(req_keywords)
         reqs.append(req_copy)
     augmented["requirements"] = reqs

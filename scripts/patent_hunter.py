@@ -600,7 +600,7 @@ def draft_candidate(rec: PatentRecord, study_id: str) -> str:
 
     adversarial = (
         f"Verify verbatim anchors in PDF before submit. "
-        f"{len(yes_reqs)} requirements auto-yes from abstract keywords."
+        f"{len(yes_reqs)} requirements auto-yes from document signals."
     )
 
     return f"""Dropdown: Patent
@@ -637,7 +637,7 @@ Highlight only this:
 Do NOT select:
 {dont_block}
 
-Coverage score: {len(yes_reqs)} of {len(rec.req_rows)} reqs auto-yes from abstract (verify claims)
+Coverage score: {len(yes_reqs)} of {len(rec.req_rows)} reqs auto-yes from document signals (verify claims)
 Adversarial note: {adversarial}
 Notes:
   - Burn check: python scripts/check_burned.py {study_id} {rec.pub_id} → {'BURNED' if rec.burned else 'CLEAR'}
