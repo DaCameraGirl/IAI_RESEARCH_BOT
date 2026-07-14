@@ -80,6 +80,7 @@ class PatentRecord:
     cpc: str = ""
     source_lane: str = ""
     source_snapshot_html: str = ""
+    search_text: str = ""
     req_rows: list[dict] = field(default_factory=list)
     citations: list[str] = field(default_factory=list)
     score: int = 0
@@ -120,6 +121,19 @@ def _extract_patent_ids(html: str) -> list[str]:
     return list(dict.fromkeys(ids))
 
 
+def _clean_patent_text(html: str) -> str:
+    text = re.sub(r"(?is)<script[^>]*>.*?</script>", " ", html)
+    text = re.sub(r"(?is)<style[^>]*>.*?</style>", " ", text)
+    text = re.sub(r"(?is)<[^>]+>", " ", text)
+    text = html_module.unescape(text)
+    text = re.sub(r"\s+", " ", text).strip()
+    return text[:120000]
+
+
+def _record_signal_text(rec: PatentRecord) -> str:
+    return " ".join(part for part in [rec.title, rec.abstract, rec.search_text] if part).strip()
+
+
 def fetch_patent(pub_id: str) -> PatentRecord:
     pub_id = _normalize_pub(pub_id)
     with _cache_lock:
@@ -134,6 +148,7 @@ def fetch_patent(pub_id: str) -> PatentRecord:
         rec.title = f"(fetch failed: {exc})"
         return rec
     rec.source_snapshot_html = html
+    rec.search_text = _clean_patent_text(html)
 
     title_m = re.search(r'<meta name="DC.title" content="([^"]+)"', html)
     if title_m:
@@ -199,9 +214,127 @@ def _parse_critical_date(study_id: str) -> str | None:
     return m.group(1) if m else None
 
 
+_NPL_QUERY_STOPWORDS = {
+    "a",
+    "an",
+    "and",
+    "article",
+    "be",
+    "book",
+    "conference",
+    "dissertation",
+    "for",
+    "in",
+    "is",
+    "lead",
+    "literature",
+    "of",
+    "on",
+    "or",
+    "paper",
+    "phd",
+    "poster",
+    "product",
+    "query",
+    "solubility",
+    "study",
+    "the",
+    "thesis",
+    "to",
+    "with",
+}
+
+
+def _crossref_type_to_dropdown(meta: dict[str, str]) -> str:
+    raw_type = (meta.get("type") or "").lower()
+    title = (meta.get("title") or "").lower()
+    if raw_type in {"book", "book-set", "monograph", "book-track", "edited-book"}:
+        return "NPL -> Book"
+    if raw_type in {"dissertation"} or "thesis" in title or "dissertation" in title:
+        return "NPL -> Masters or PhD thesis"
+    if raw_type in {"journal-article", "proceedings-article", "posted-content", "report-component"}:
+        return "NPL -> Article"
+    return "NPL -> Other"
+
+
+def _npl_access_fields(meta: dict[str, str]) -> tuple[str, str]:
+    pdf_url = meta.get("pdf_url") or ""
+    resolver_url = meta.get("url") or ""
+    if pdf_url:
+        return f"yes + {pdf_url}", "open PDF link from Crossref metadata"
+    if resolver_url:
+        return f"unknown + {resolver_url}", "resolver only - verify open vs school/library"
+    return "unknown + not found", "not verified"
+
+
+def _query_concepts(query: str, study_id: str) -> list[str]:
+    study_keywords = sorted(
+        {
+            keyword.strip().lower()
+            for keyword in STUDY_META[study_id].get("keywords", [])
+            if keyword and len(keyword.strip()) > 3
+        },
+        key=len,
+        reverse=True,
+    )
+    query_lower = query.lower()
+    concepts: list[str] = []
+    consumed: list[tuple[int, int]] = []
+
+    for keyword in study_keywords:
+        idx = query_lower.find(keyword)
+        if idx == -1:
+            continue
+        end = idx + len(keyword)
+        if any(not (end <= left or idx >= right) for left, right in consumed):
+            continue
+        concepts.append(keyword)
+        consumed.append((idx, end))
+
+    stripped = query_lower
+    for keyword in concepts:
+        stripped = stripped.replace(keyword, " ")
+    for token in re.findall(r"[a-z0-9]+", stripped):
+        if len(token) <= 3 or token in _NPL_QUERY_STOPWORDS:
+            continue
+        concepts.append(token)
+    return list(dict.fromkeys(concepts))
+
+
+def _npl_match_summary(query: str, meta: dict[str, str], study_id: str) -> tuple[list[str], str]:
+    concepts = _query_concepts(query, study_id)
+    combined = " ".join(
+        filter(
+            None,
+            [
+                meta.get("title", ""),
+                meta.get("journal", ""),
+                meta.get("publisher", ""),
+                meta.get("type", ""),
+            ],
+        )
+    ).lower()
+    matched = [concept for concept in concepts if concept in combined]
+    return matched, combined
+
+
+def _npl_confidence_and_reason(query: str, meta: dict[str, str], study_id: str) -> tuple[str, str, list[str]]:
+    matched, combined = _npl_match_summary(query, meta, study_id)
+    title = (meta.get("title") or "").lower()
+    if len(matched) >= 3:
+        return "med", f"title/metadata match {len(matched)} query concepts", matched
+    if len(matched) >= 2 and title:
+        return "med", f"title/metadata match {len(matched)} query concepts", matched
+    if len(matched) == 1:
+        return "low", f"only one query concept matched ({matched[0]})", matched
+    if combined:
+        return "low", "no specific study concepts matched resolved metadata", matched
+    return "low", "Crossref metadata too thin to verify scope", matched
+
+
 def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
     keywords = STUDY_META[study_id]["keywords"]
-    text = f"{rec.title} {rec.abstract}"
+    text = _record_signal_text(rec)
     text_l = text.lower()
     matched = [k for k in keywords if k.lower() in text_l]
     rec.matched_keywords = matched
@@ -233,7 +366,7 @@ def score_record(rec: PatentRecord, study_id: str) -> PatentRecord:
 
     rec.rank_reason = (
         f"priority_yes={priority_yes}, req_yes={yes_count}, req_maybe={maybe_count}, "
-        f"matched_keywords={len(matched)}; rank follows requirement coverage, not keyword count alone"
+        f"matched_keywords={len(matched)}; rank follows requirement coverage across patent full text, not keyword count alone"
     )
     evidence = _build_patent_evidence_record(rec, study_id)
     rec.evidence_record = evidence
@@ -292,7 +425,7 @@ def _build_patent_evidence_record(rec: PatentRecord, study_id: str) -> EvidenceR
     profile = resolve_profile_from_meta(STUDY_META[study_id])
     critical = _parse_critical_date(study_id) or ""
     document_date = rec.priority_date or rec.publication_date or ""
-    phrases = ctrl_f_phrases(rec.abstract or rec.title, rec.matched_keywords, limit=1)
+    phrases = ctrl_f_phrases(_record_signal_text(rec), rec.matched_keywords, limit=1)
     lane = lane_for_source_label(rec.source_lane or "L1")
     patent_norm = normalize_publication_number(rec.pub_id)
     entity_norm = normalize_entity_name(rec.assignee)
@@ -395,7 +528,7 @@ def _proof_bundle_metadata(rec: PatentRecord, study_id: str) -> dict:
     evidence = rec.evidence_record or _build_patent_evidence_record(rec, study_id)
     critical = _parse_critical_date(study_id)
     document_date = rec.priority_date or rec.publication_date or ""
-    phrases = ctrl_f_phrases(rec.abstract or rec.title, rec.matched_keywords, limit=1)
+    phrases = ctrl_f_phrases(_record_signal_text(rec), rec.matched_keywords, limit=1)
     return {
         "publication": rec.pub_id,
         "title": rec.title,
@@ -446,7 +579,7 @@ def _req_table(rows: list[dict]) -> str:
 
 def draft_candidate(rec: PatentRecord, study_id: str) -> str:
     pdf_line = rec.pdf_url or rec.uspto_pdf_url or rec.url
-    phrases = ctrl_f_phrases(rec.abstract or rec.title, rec.matched_keywords, limit=6)
+    phrases = ctrl_f_phrases(_record_signal_text(rec), rec.matched_keywords, limit=6)
     yes_reqs = [r for r in rec.req_rows if r["select"] == "yes"]
     no_reqs = [r for r in rec.req_rows if r["select"] == "no"][:5]
     highlights = yes_reqs[:3] if yes_reqs else rec.req_rows[:2]
@@ -945,23 +1078,31 @@ class HuntEngine:
                 continue
             if is_burned(q, burned)[0]:
                 continue
+            confidence, confidence_reason, matched_concepts = _npl_confidence_and_reason(q, meta, self.study_id)
+            if confidence == "low" and len(matched_concepts) < 2:
+                self.log(f"  SKIP NPL metadata mismatch: {doi} ({confidence_reason})", "skip")
+                continue
+            dropdown = _crossref_type_to_dropdown(meta)
+            pdf_line, access_line = _npl_access_fields(meta)
+            title = meta.get("title") or f"(Crossref lead for query: {q})"
+            date_value = meta.get("publication_date") or f"<= {critical or 'critical date'}"
             safe = re.sub(r"[^A-Za-z0-9]+", "_", q)[:40]
             path = cand_dir / f"NPL_{safe}_RWS_format.txt"
-            text = f"""Dropdown: NPL -> Article
-Downloadable PDF: yes + {meta.get('url') or 'check Unpaywall / school login'}
-Access: open | school
+            text = f"""Dropdown: {dropdown}
+Downloadable PDF: {pdf_line}
+Access: {access_line}
 
 Self-rank: 1/3
-In-scope confidence: med
+In-scope confidence: {confidence}
 (Bot: NPL lead — verify PDF + in-scope before surfacing to Angela.)
 
 Form fields:
-  title: (Crossref lead for query: {q})
-  authors: not found
+  title: {title}
+  authors: {meta.get('authors') or 'not found'}
   journal: {meta.get('journal') or 'not found'}
   DOI: {meta.get('doi')}
   ISSN: not found
-  publisher: not found
+  publisher: {meta.get('publisher') or 'not found'}
   date: ≤ {critical or 'critical date'}
   URL: {meta.get('url') or 'not found'}
 
@@ -981,6 +1122,9 @@ Do NOT select:
 
 Notes:
   - NPL adjacent lead from Crossref query: {q}
+  - Crossref type: {meta.get('type') or 'unknown'}
+  - Scope check: {confidence_reason}
+  - Matched concepts: {', '.join(matched_concepts) if matched_concepts else 'none'}
   - Hunt engine {datetime.now().strftime('%Y-%m-%d %H:%M')}
 """
             path.write_text(text, encoding="utf-8")
